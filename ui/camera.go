@@ -16,7 +16,7 @@ import (
 
 	bootstrap "landan-desktop-fyne/bootstrap"
 	helper "landan-desktop-fyne/internal/helper"
-	camera "landan-desktop-fyne/pkg/camera"
+	pkgCamera "landan-desktop-fyne/pkg/camera"
 )
 
 type cameraView struct {
@@ -132,7 +132,7 @@ func (v *cameraView) start() {
 		// if the previous frame has not been drawn yet, drop this one.
 		var bPending atomic.Bool
 
-		oOptions := camera.Options{
+		oOptions := pkgCamera.Options{
 			Device:           bootstrap.CONFIG.CAMERA.DEVICE,
 			Width:            bootstrap.CONFIG.CAMERA.WIDTH,
 			Height:           bootstrap.CONFIG.CAMERA.HEIGHT,
@@ -146,7 +146,7 @@ func (v *cameraView) start() {
 			SnapshotEvery:    time.Duration(bootstrap.CONFIG.CAMERA.SNAPSHOT_INTERVAL) * time.Second,
 		}
 
-		err := camera.Stream(oCtx, oOptions, func(oFrame image.Image) {
+		err := pkgCamera.Stream(oCtx, oOptions, func(oFrame image.Image) {
 			if oCtx.Err() != nil || !bPending.CompareAndSwap(false, true) {
 				return
 			}
