@@ -1,6 +1,6 @@
 //go:build darwin && cgo
 
-package avfoundation
+package camera
 
 /*
 #cgo CFLAGS: -fobjc-arc
@@ -84,14 +84,17 @@ func goCameraError(iHandle C.uintptr_t, cMessage *C.char) {
 	}
 }
 
-// Stream reads the default webcam through AVFoundation.
+// Stream reads the webcam through AVFoundation.
 // One capture session feeds three things: a small live preview (fnFrame), an H.264 mp4 file,
 // and periodic full-size JPEG snapshots. Cancelling oCtx stops the camera and finalizes the mp4.
 func Stream(oCtx context.Context, oOptions Options, fnFrame func(image.Image)) error {
 
-	iBitrate, err := parseBitrate(oOptions.Bitrate)
-	if err != nil {
-		return err
+	var iBitrate int
+	if oOptions.RecordPath != "" {
+		var err error
+		if iBitrate, err = parseBitrate(oOptions.Bitrate); err != nil {
+			return err
+		}
 	}
 
 	var dSnapshotSeconds float64
@@ -103,7 +106,11 @@ func Stream(oCtx context.Context, oOptions Options, fnFrame func(image.Image)) e
 	oHandle := cgo.NewHandle(oStream)
 	defer oHandle.Delete()
 
-	cDevice := C.CString("default")
+	sDevice := oOptions.Device
+	if sDevice == "" {
+		sDevice = "default"
+	}
+	cDevice := C.CString(sDevice)
 	defer C.free(unsafe.Pointer(cDevice))
 	cRecordPath := C.CString(oOptions.RecordPath)
 	defer C.free(unsafe.Pointer(cRecordPath))
@@ -120,9 +127,10 @@ func Stream(oCtx context.Context, oOptions Options, fnFrame func(image.Image)) e
 		return fmt.Errorf("無法讀取攝影機: %s", sMessage)
 	}
 
+	var errCamera error
 	select {
 	case <-oCtx.Done():
-	case err = <-oStream.failed:
+	case errCamera = <-oStream.failed:
 	}
 
 	// Waits until the mp4 is finalized; no callback runs after this.
@@ -131,5 +139,5 @@ func Stream(oCtx context.Context, oOptions Options, fnFrame func(image.Image)) e
 	if oCtx.Err() != nil {
 		return nil
 	}
-	return err
+	return errCamera
 }

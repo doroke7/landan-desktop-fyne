@@ -14,9 +14,9 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 
-	"landan-desktop-fyne/bootstrap"
-	"landan-desktop-fyne/internal/helper"
-	"landan-desktop-fyne/pkg/avfoundation"
+	bootstrap "landan-desktop-fyne/bootstrap"
+	helper "landan-desktop-fyne/internal/helper"
+	camera "landan-desktop-fyne/pkg/camera"
 )
 
 type cameraView struct {
@@ -95,17 +95,15 @@ func ShutdownCamera() {
 
 func (v *cameraView) start() {
 
-	oCameraConfig := bootstrap.CONFIG.CAMERA
-
-	sPath, err := helper.NewRecordingPath(oCameraConfig.RECORD_DIRECTORY)
+	sPath, err := helper.NewRecordingPath(bootstrap.CONFIG.CAMERA.RECORD_DIRECTORY)
 	if err != nil {
 		v.status.SetText("錯誤: " + err.Error())
 		return
 	}
 
 	var sSnapshotDir string
-	if oCameraConfig.SNAPSHOT_INTERVAL > 0 {
-		sSnapshotDir, err = helper.NewSnapshotDir(oCameraConfig.SNAPSHOT_DIRECTORY)
+	if bootstrap.CONFIG.CAMERA.SNAPSHOT_INTERVAL > 0 {
+		sSnapshotDir, err = helper.NewSnapshotDir(bootstrap.CONFIG.CAMERA.SNAPSHOT_DIRECTORY)
 		if err != nil {
 			v.status.SetText("錯誤: " + err.Error())
 			return
@@ -134,20 +132,21 @@ func (v *cameraView) start() {
 		// if the previous frame has not been drawn yet, drop this one.
 		var bPending atomic.Bool
 
-		oOptions := avfoundation.Options{
-			Width:            oCameraConfig.WIDTH,
-			Height:           oCameraConfig.HEIGHT,
-			Framerate:        oCameraConfig.FRAMERATE,
-			Bitrate:          oCameraConfig.RECORD_BITRATE,
-			PreviewWidth:     oCameraConfig.PREVIEW_WIDTH,
-			PreviewHeight:    oCameraConfig.PREVIEW_HEIGHT,
-			PreviewFramerate: oCameraConfig.PREVIEW_FRAMERATE,
+		oOptions := camera.Options{
+			Device:           bootstrap.CONFIG.CAMERA.DEVICE,
+			Width:            bootstrap.CONFIG.CAMERA.WIDTH,
+			Height:           bootstrap.CONFIG.CAMERA.HEIGHT,
+			Framerate:        bootstrap.CONFIG.CAMERA.FRAMERATE,
+			Bitrate:          bootstrap.CONFIG.CAMERA.RECORD_BITRATE,
+			PreviewWidth:     bootstrap.CONFIG.CAMERA.PREVIEW_WIDTH,
+			PreviewHeight:    bootstrap.CONFIG.CAMERA.PREVIEW_HEIGHT,
+			PreviewFramerate: bootstrap.CONFIG.CAMERA.PREVIEW_FRAMERATE,
 			RecordPath:       sPath,
 			SnapshotDir:      sSnapshotDir,
-			SnapshotEvery:    time.Duration(oCameraConfig.SNAPSHOT_INTERVAL) * time.Second,
+			SnapshotEvery:    time.Duration(bootstrap.CONFIG.CAMERA.SNAPSHOT_INTERVAL) * time.Second,
 		}
 
-		err := avfoundation.Stream(oCtx, oOptions, func(oFrame image.Image) {
+		err := camera.Stream(oCtx, oOptions, func(oFrame image.Image) {
 			if oCtx.Err() != nil || !bPending.CompareAndSwap(false, true) {
 				return
 			}

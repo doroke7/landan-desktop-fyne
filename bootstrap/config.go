@@ -43,6 +43,7 @@ type Config struct {
 		DEBUG bool `mapstructure:"debug"`
 	} `mapstructure:"default"`
 	CAMERA struct {
+		DEVICE             string `mapstructure:"device"`
 		WIDTH              int    `mapstructure:"width"`
 		HEIGHT             int    `mapstructure:"height"`
 		FRAMERATE          int    `mapstructure:"framerate"`

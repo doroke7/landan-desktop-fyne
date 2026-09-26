@@ -196,7 +196,9 @@ static const int kSnapshotWarmupFrames = 10;
         self.frameCount++;
         double dTime = CMTimeGetSeconds(CMSampleBufferGetPresentationTimeStamp(oSample));
 
-        [self recordSample:oSample];
+        if (self.recordPath.length > 0) {
+            [self recordSample:oSample];
+        }
 
         BOOL bPreview = dTime >= self.nextPreview;
         BOOL bSnapshot = self.snapshotInterval > 0 && self.frameCount > kSnapshotWarmupFrames && dTime >= self.nextSnapshot;

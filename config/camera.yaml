@@ -1,6 +1,11 @@
 # 攝影機擷取(錄影 + 預覽 + 定時截圖)
-width: 1280
-height: 720
+# device 空白 = 系統預設相機。
+#   macOS  : 編號或名稱的一部分(例: 0、FaceTime)
+#   Windows: dshow 裝置名稱(例: Integrated Camera);空白時取 ffmpeg 列出的第一台
+#   Linux  : 裝置路徑(例: /dev/video0)
+device: ''
+width: 640
+height: 480
 framerate: 30
 
 record_directory: '~/Movies'
@@ -8,7 +13,7 @@ record_bitrate: '4M'
 
 # 預覽只是給人看的,縮小、降幀率以節省 CPU
 preview_width: 640
-preview_height: 360
+preview_height: 480
 preview_framerate: 15
 
 # 定時截圖(秒),0 代表不截圖

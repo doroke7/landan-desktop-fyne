@@ -17,7 +17,7 @@ internal/ 資料夾裡的程式碼應該純粹只做資料運算或網路通訊�
 | 封鎖對方 | 拒絕溝通，非常無理 | 不要回覆，說3天後我再跟你談，如果3天後還是不行，提前1天說。 | 9/25 這件事情，我還是沒有共識， 我覺得現在大家都在情緒上，不好溝通。 能不能 9/27 再溝通。不要擔心，我一定會給你時間 跟發言的機會。或是你可以來的店裡溝通。 |
 
 
-Go 做桌面程式的缺點， go 對 desktop API 支援偏低，譬如 讀取usb 視訊，需要透過 ffmpeg，或用 cgo 呼叫系統框架(macOS 用 AVFoundation)。本專案原本用 ffmpeg，現在是後者，見 pkg/avfoundation/，CPU 比較見下方
+Go 做桌面程式的缺點， go 對 desktop API 支援偏低，譬如 讀取usb 視訊，需要透過 ffmpeg，或用 cgo 呼叫系統框架(macOS 用 AVFoundation)。本專案原本用 ffmpeg，現在是後者，見 pkg/camera/，CPU 比較見下方
 Rust 做桌面程式的缺點，rust 需要學習新語言
 Node 做桌面程式的缺點，體積太大
 Python 做桌面程式的缺點。python 比較拿不到全部os 的性能
@@ -29,7 +29,7 @@ Python 做桌面程式的缺點。python 比較拿不到全部os 的性能
 
 ## 讀攝影機：ffmpeg 拉訊號 vs Objective-C 拉訊號的 CPU 比較
 
-原本用 `ffmpeg -f avfoundation` 讀攝影機，從 stdout 收 MJPEG 再解碼顯示；現在改成用 Objective-C 直接呼叫 AVFoundation（`pkg/avfoundation/`）。
+原本用 `ffmpeg -f avfoundation` 讀攝影機，從 stdout 收 MJPEG 再解碼顯示；macOS 現在改成用 Objective-C 直接呼叫 AVFoundation（`pkg/camera/`）；Windows、Linux 仍走 ffmpeg，見下方「跨平台」。
 
 **測試條件（2026-09-26）**
 
@@ -44,7 +44,7 @@ Python 做桌面程式的缺點。python 比較拿不到全部os 的性能
 | | 做法 | 12 秒 CPU 時間 | 換算 |
 | --- | --- | --- | --- |
 | ffmpeg | `ffmpeg -f avfoundation`（nv12）→ 預覽 MJPEG + mp4 + 截圖，只算 ffmpeg 行程 | user 4.43s + sys 1.04s = 5.47s | 約 41~46% |
-| Objective-C | `pkg/avfoundation`，只算測試行程 | BGRA 版 44.8%，改成 YUV 版 43.3% | 約 43~45% |
+| Objective-C | `pkg/camera`，只算測試行程 | BGRA 版 44.8%，改成 YUV 版 43.3% | 約 43~45% |
 
 ffmpeg 的牆鐘時間是 13.5 秒（含啟動），除以 12 或 13.5 會差一點，所以寫成範圍。
 
@@ -79,12 +79,30 @@ ffmpeg 版（`-t` 要放在 `-i` 前面，放在輸出前面只會限制第一�
   -vf fps=1/2 -q:v 2 -f image2 -strftime 1 "/tmp/s-%H%M%S.jpg" > /dev/null
 ```
 
-Objective-C 版：寫一個暫時的測試呼叫 `avfoundation.Stream`（參數同上，`SnapshotEvery` 設 2 秒，跑 12 秒），前後各用 `syscall.Getrusage` 取 user + sys 時間，除以牆鐘時間，跑完刪掉測試。
+Objective-C 版：寫一個暫時的測試呼叫 `camera.Stream`（參數同上，`SnapshotEvery` 設 2 秒，跑 12 秒），前後各用 `syscall.Getrusage` 取 user + sys 時間，除以牆鐘時間，跑完刪掉測試。
 
-**實作備註**（`pkg/avfoundation/`）
+**實作備註**（`pkg/camera/`）
 
-- 只有 macOS + cgo 能用；`.m` / `.h` 放在 Go 檔同一個目錄，是 cgo 的要求。
+- macOS + cgo 用 AVFoundation；其他平台（或 `CGO_ENABLED=0`）用 ffmpeg 後端。`.m` / `.h` 放在 Go 檔同一個目錄，是 cgo 的要求。
 - macOS 的 session 啟動時會套用 preset，可能讓相機停在自己的預設格式（這台是 1920x1080），而 `AVCaptureSessionPresetInputPriority` 在 macOS 不存在。所以改成 `startRunning` 之後用 `activeFormat` 選剛好 1280x720、支援目標幀率的格式；切換前可能還有幾張舊尺寸的畫面，程式會丟掉。找不到符合的格式就退回最接近的 preset。
 - 相機輸出原生 YUV（420v），錄影直接餵硬體編碼器；只有預覽和截圖才用 vImage 轉成 RGBA。
 - 截圖等 10 張畫面之後才拍，因為剛開相機時自動曝光還沒穩，畫面偏暗。
 - 第一次會跳出攝影機權限對話框，權限歸給啟動這個程式的終端機（跟 ffmpeg 時一樣）。
+
+**跨平台（Windows / Linux）**
+
+`pkg/camera` 有兩個後端，呼叫端都是 `camera.Stream(...)`：
+
+| 平台 | 後端 | 讀相機 | 錄影編碼 |
+| --- | --- | --- | --- |
+| macOS（cgo） | AVFoundation（Objective-C） | 系統 API | VideoToolbox 硬體編碼 |
+| Windows | ffmpeg | `dshow`（`config/camera.yaml` 的 `device` 空白時取 ffmpeg 列出的第一台） | 依序實測 `h264_nvenc` → `h264_qsv` → `h264_amf` → `h264_mf`，都不行退回 `libx264`（軟體編碼） |
+| Linux | ffmpeg | `v4l2`（預設 `/dev/video0`） | `h264_nvenc`，不行退回 `libx264` |
+
+- ffmpeg 要自己裝並加進 PATH（Windows：`winget install ffmpeg`）。
+- 編碼器是「真的編幾張畫面」測過才選的，因為 ffmpeg 會列出機器上根本沒有的硬體編碼器。選到哪個會寫進日誌。
+- **Windows 的 CPU 我沒量過，也沒在 Windows 上跑過。** 這份程式只在 macOS 上驗證過 ffmpeg 後端（用 `CGO_ENABLED=0` 強制走 ffmpeg：讀相機、預覽、mp4、截圖、錯誤訊息都正常），dshow 的部分只驗證了「相機清單解析」和四個平台都編得過。
+- 沒有可用硬體編碼器時會用 `libx264`，1280x720@30fps 是軟體編碼，CPU 會明顯比 macOS 版高。可以在 `config/camera.yaml` 調低 `width/height/framerate/record_bitrate`。
+- dshow 有些相機不支援指定的解析度或幀率，會直接失敗，錯誤訊息會帶 ffmpeg 的原文；這時換一組 `width/height/framerate`，或用 `ffmpeg -list_options true -f dshow -i video="相機名稱"` 看相機支援什麼。
+- Windows 的完整 App 需要 cgo（Fyne 的 OpenGL），要用 mingw-w64 在 Windows 上編，這台 Mac 上驗證不了。
+- 在 macOS 上測 ffmpeg 後端：`CGO_ENABLED=0 go build -o bin/desktop .`

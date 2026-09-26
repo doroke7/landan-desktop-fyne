@@ -1,7 +1,10 @@
-// Package avfoundation captures the default webcam through AVFoundation (cgo, macOS only),
-// previewing it frame by frame while recording it to an mp4 file
+// Package camera captures a webcam, previewing it frame by frame while recording it to an mp4 file
 // and saving a still snapshot at a fixed interval.
-package avfoundation
+//
+// It has two backends behind the same Stream function:
+//   - macOS with cgo: AVFoundation, called directly from Objective-C (stream_darwin.go, avf_stream_darwin.m).
+//   - everything else (Windows, Linux, macOS without cgo): the ffmpeg program (stream_ffmpeg.go).
+package camera
 
 import (
 	"fmt"
@@ -12,6 +15,11 @@ import (
 
 // Options controls what Stream shows and writes to disk.
 type Options struct {
+	// Device picks the camera. Empty means the system default (on Windows: the first camera ffmpeg lists).
+	// AVFoundation accepts an index or part of the name; the ffmpeg backend takes the device name on Windows
+	// and the device path (e.g. /dev/video0) on Linux.
+	Device string
+
 	Width     int // capture size
 	Height    int
 	Framerate int    // capture frames per second
@@ -21,7 +29,7 @@ type Options struct {
 	PreviewHeight    int
 	PreviewFramerate int
 
-	RecordPath    string        // mp4 file to record into
+	RecordPath    string        // mp4 file to record into; empty means do not record
 	SnapshotDir   string        // folder for snapshots; empty disables snapshots
 	SnapshotEvery time.Duration // interval between snapshots; the first one is taken right away
 }
