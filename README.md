@@ -82,7 +82,7 @@ ffmpeg 版（`-t` 要放在 `-i` 前面，放在輸出前面只會限制第一�
 Objective-C 版：寫一個暫時的測試呼叫 `camera.Stream`（參數同上，`SnapshotEvery` 設 2 秒，跑 12 秒），前後各用 `syscall.Getrusage` 取 user + sys 時間，除以牆鐘時間，跑完刪掉測試。
 
 **實作備註**（`pkg/camera/`）
-
+w
 - macOS + cgo 用 AVFoundation；其他平台（或 `CGO_ENABLED=0`）用 ffmpeg 後端。`.m` / `.h` 放在 Go 檔同一個目錄，是 cgo 的要求。
 - macOS 的 session 啟動時會套用 preset，可能讓相機停在自己的預設格式（這台是 1920x1080），而 `AVCaptureSessionPresetInputPriority` 在 macOS 不存在。所以改成 `startRunning` 之後用 `activeFormat` 選剛好 1280x720、支援目標幀率的格式；切換前可能還有幾張舊尺寸的畫面，程式會丟掉。找不到符合的格式就退回最接近的 preset。
 - 相機輸出原生 YUV（420v），錄影直接餵硬體編碼器；只有預覽和截圖才用 vImage 轉成 RGBA。
@@ -106,3 +106,22 @@ Objective-C 版：寫一個暫時的測試呼叫 `camera.Stream`（參數同上�
 - dshow 有些相機不支援指定的解析度或幀率，會直接失敗，錯誤訊息會帶 ffmpeg 的原文；這時換一組 `width/height/framerate`，或用 `ffmpeg -list_options true -f dshow -i video="相機名稱"` 看相機支援什麼。
 - Windows 的完整 App 需要 cgo（Fyne 的 OpenGL），要用 mingw-w64 在 Windows 上編，這台 Mac 上驗證不了。
 - 在 macOS 上測 ffmpeg 後端：`CGO_ENABLED=0 go build -o bin/desktop .`
+
+## docker compose up 的流程
+
+```
+docker compose up
+-> bin/desktop.sh
+-> bin/main
+-> bin/main desktop compose up
+-> cmd/desktop/compose/up/main.go
+-> bootstrap.StartLauncher()
+-> bin/main desktop（背景執行）
+-> cmd/desktop/main.go（開視窗）
+```
+
+關鍵：
+
+1. 命令格式要符合 compose：compose 只會呼叫 `<type> compose ... up|down|metadata`，所以用 `bin/desktop.sh` 轉成 `bin/main desktop compose ...`。
+2. compose 真正的入口是 `cmd/desktop/compose/up/main.go`，不是開視窗的主程式。
+3. `up` 再透過 launcher 啟動一個新的背景程序 `bin/main desktop` 去執行主程式，`up` 本身做完就結束。
