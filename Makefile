@@ -1,13 +1,9 @@
 # 桌面程式用 cgo(Fyne + OpenGL),只能在對應平台上編譯,這裡編本機版本。
-# 由 docker compose 啟動宿主機上的程式(見 compose.yaml),不是容器。
 
 .PHONY: help
 help:
 	@echo "make build   編譯 -> bin/desktop"
 	@echo "make run     直接執行(前景,關掉視窗才結束)"
-	@echo "make up      編譯並用 docker compose 在背景啟動"
-	@echo "make down    停止"
-	@echo "make logs    看背景程式的日誌"
 	@echo "make protoc  由 proto/ 產生 pb/"
 	@echo "make clean   刪除 bin/"
 
@@ -17,22 +13,7 @@ build:
 
 .PHONY: run
 run: build
-	./bin/desktop
-
-# 專案裡沒有容器時 docker compose up 一定回傳 1(程式其實已啟動),所以前面加 - 忽略結束碼;
-# 真的失敗時,錯誤訊息仍會顯示在輸出裡。
-# --progress=plain:預設的動畫進度畫面會吃掉 provider 回報的訊息。
-.PHONY: up
-up: build
-	-docker compose --progress=plain up
-
-.PHONY: down
-down:
-	docker compose --progress=plain down
-
-.PHONY: logs
-logs:
-	tail -f runtime/desktop/desktop.log
+	./bin/desktop desktop
 
 .PHONY: protoc
 protoc:

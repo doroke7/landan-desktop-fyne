@@ -1,6 +1,0 @@
-name: landan-desktop
-
-services:
-  desktop:
-    provider:
-      type: ./bin/desktop # 先nmake build
