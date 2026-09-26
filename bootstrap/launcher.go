@@ -1,5 +1,6 @@
 // launcher.go runs the desktop app as a detached background process and stops it again.
-// The process id is kept in ./runtime/desktop/desktop.pid, its output in desktop.log.
+// The background process is the supervisor (supervisor.go), which runs the app and restarts it after a crash.
+// The supervisor's process id is kept in ./runtime/desktop/desktop.pid, the output of both in desktop.log.
 //
 // Everything lives in this one file and only uses APIs that compile on every OS;
 // the differences are handled with `switch runtime.GOOS`, one case per OS family:
@@ -38,7 +39,7 @@ func readLauncherPid() (int, bool) {
 	return nPid, err == nil && nPid > 0
 }
 
-// StartLauncher runs `<this executable> desktop` (the window) in the background.
+// StartLauncher runs `<this executable> desktop compose supervise` (the window, kept alive) in the background.
 // started is false, and nPid is the existing process, if it is already running.
 func StartLauncher() (nPid int, started bool, err error) {
 
@@ -47,14 +48,17 @@ func StartLauncher() (nPid int, started bool, err error) {
 		return 0, false, err
 	}
 
+	// Step1:已經在跑就不要再開第二個。讀 desktop.pid,確認那個 pid 還活著且是我們的程式。
 	if nOld, ok := readLauncherPid(); ok && runningLauncher(nOld, sExe) {
 		return nOld, false, nil
 	}
 
+	// Step2:確保 runtime/desktop/ 存在,pid 檔和日誌都放在這裡。
 	if err := os.MkdirAll(sLauncherDirectory, 0o755); err != nil {
 		return 0, false, err
 	}
 
+	// Step3:在背景啟動 supervisor(它再去啟動並看守視窗程式),拿到它的 pid 寫進 desktop.pid,down 靠這個檔案找到它。
 	nPid, err = spawnLauncher(sExe)
 	if err != nil {
 		return 0, false, err
@@ -63,7 +67,7 @@ func StartLauncher() (nPid int, started bool, err error) {
 		return 0, false, err
 	}
 
-	// Wait a moment: a bad config makes the app exit at once, and that should be reported.
+	// Step4:等 1.5 秒再檢查一次還活著沒。設定檔錯誤會讓它立刻結束,這時要刪掉 pid 檔並把日誌尾巴當錯誤回報。
 	time.Sleep(1500 * time.Millisecond)
 	if !runningLauncher(nPid, sExe) {
 		os.Remove(launcherPidPath())
@@ -86,7 +90,7 @@ func spawnLauncher(sExe string) (int, error) {
 		}
 		defer oLog.Close()
 
-		oCmd := exec.Command(sExe, "desktop")
+		oCmd := exec.Command(sExe, "desktop", "compose", "supervise")
 		oCmd.Stdout = oLog
 		oCmd.Stderr = oLog
 		if err := oCmd.Start(); err != nil {
@@ -98,7 +102,7 @@ func spawnLauncher(sExe string) (int, error) {
 	case "darwin", "linux":
 		// Let a shell start it with nohup in the background and print its pid.
 		// nohup makes it ignore SIGHUP, so closing the terminal that ran `docker compose up` does not kill it.
-		aOutput, err := exec.Command("sh", "-c", `nohup "$0" desktop >>"$1" 2>&1 </dev/null & echo $!`, sExe, LauncherLogPath()).Output()
+		aOutput, err := exec.Command("sh", "-c", `nohup "$0" desktop compose supervise >>"$1" 2>&1 </dev/null & echo $!`, sExe, LauncherLogPath()).Output()
 		if err != nil {
 			return 0, err
 		}
@@ -170,7 +174,11 @@ func terminateLauncher(nPid int) error {
 
 	case "windows":
 		// Windows cannot deliver signals to another process, so it is killed.
-		return oProcess.Kill()
+		// The supervisor's child (the app) is killed with it, or it would be left running.
+		if err := exec.Command("taskkill", "/T", "/F", "/PID", strconv.Itoa(nPid)).Run(); err != nil {
+			return oProcess.Kill()
+		}
+		return nil
 
 	case "darwin", "linux":
 		// SIGTERM lets the app quit normally, so the recording is finalized.
