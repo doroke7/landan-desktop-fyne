@@ -17,6 +17,28 @@ type Config struct {
 			PORT string `mapstructure:"port"`
 		} `mapstructure:"ir"`
 	} `mapstructure:"services"`
+	ONNX struct {
+		LIBRARY string `mapstructure:"library"`
+		DETECT  struct {
+			DIE struct {
+				CUBE string `mapstructure:"cube"`
+				TOP  string `mapstructure:"top"`
+			} `mapstructure:"die"`
+			POKER struct {
+				CARD string `mapstructure:"card"`
+			} `mapstructure:"poker"`
+		} `mapstructure:"detect"`
+		CLASSIFY struct {
+			DIE struct {
+				VALUE string `mapstructure:"value"`
+			} `mapstructure:"die"`
+			POKER struct {
+				CARD string `mapstructure:"card"`
+				RANK string `mapstructure:"rank"`
+				SUIT string `mapstructure:"suit"`
+			} `mapstructure:"poker"`
+		} `mapstructure:"classify"`
+	} `mapstructure:"onnx"`
 	DEFAULT struct {
 		DEBUG bool `mapstructure:"debug"`
 	} `mapstructure:"default"`

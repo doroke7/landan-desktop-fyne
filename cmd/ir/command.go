@@ -28,7 +28,11 @@ var Command = &cobra.Command{
 		oCtx, fnStop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer fnStop()
 
-		oServer := registerIR.Init(container.InitIRContainer())
+		oContainer, err := container.InitIRContainer(oCtx)
+		if err != nil {
+			return fmt.Errorf("init container: %w", err)
+		}
+		oServer := registerIR.Init(oContainer)
 
 		sAddress := ":" + bootstrap.CONFIG.SERVICES.IR.PORT
 		oListener, err := net.Listen("tcp", sAddress)

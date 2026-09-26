@@ -1,0 +1,17 @@
+# libonnxruntime 動態函式庫的路徑，留空就用系統預設位置。
+library: ""
+
+detect:
+  die:
+    cube: "./model/detect/die/cube/best.onnx"
+    top: "./model/detect/die/top/best.onnx"
+  poker:
+    card: "./model/detect/poker/card/best.onnx"
+
+classify:
+  die:
+    value: "./model/classify/die/value/best.onnx"
+  poker:
+    card: "./model/classify/poker/card/best.onnx"
+    rank: "./model/classify/poker/rank/best.onnx"
+    suit: "./model/classify/poker/suit/best.onnx"
