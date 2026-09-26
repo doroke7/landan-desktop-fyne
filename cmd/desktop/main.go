@@ -1,6 +1,8 @@
 // Package desktop is the `desktop` command: it opens the Fyne window.
 //
 //	go run main.go desktop
+//
+// Its subcommand `compose` (cmd/desktop/compose) is what docker compose calls through bin/desktop.sh.
 package desktop
 
 import (
@@ -9,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"landan-desktop-fyne/bootstrap"
+	"landan-desktop-fyne/cmd/desktop/compose"
 	"landan-desktop-fyne/ui"
 )
 
@@ -30,4 +33,8 @@ var Command = &cobra.Command{
 		oWindow.ShowAndRun()
 		return nil
 	},
+}
+
+func init() {
+	Command.AddCommand(compose.Command)
 }

@@ -1,0 +1,6 @@
+name: landan-desktop
+
+services:
+  desktop:
+    provider:
+      type: ./bin/desktop.sh # 先 make build(會一併產生 bin/desktop.sh)
