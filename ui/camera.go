@@ -16,6 +16,7 @@ import (
 
 	"landan-desktop-fyne/bootstrap"
 	"landan-desktop-fyne/internal/helper"
+	"landan-desktop-fyne/pkg/avfoundation"
 )
 
 type cameraView struct {
@@ -133,7 +134,7 @@ func (v *cameraView) start() {
 		// if the previous frame has not been drawn yet, drop this one.
 		var bPending atomic.Bool
 
-		oOptions := helper.Options{
+		oOptions := avfoundation.Options{
 			Width:            oCameraConfig.WIDTH,
 			Height:           oCameraConfig.HEIGHT,
 			Framerate:        oCameraConfig.FRAMERATE,
@@ -146,7 +147,7 @@ func (v *cameraView) start() {
 			SnapshotEvery:    time.Duration(oCameraConfig.SNAPSHOT_INTERVAL) * time.Second,
 		}
 
-		err := helper.Stream(oCtx, oOptions, func(oFrame image.Image) {
+		err := avfoundation.Stream(oCtx, oOptions, func(oFrame image.Image) {
 			if oCtx.Err() != nil || !bPending.CompareAndSwap(false, true) {
 				return
 			}
