@@ -6,23 +6,18 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	outputPortAnyModel "landan-desktop-fyne/internal/output/port/any/model"
+	usecasePortIrInference "landan-desktop-fyne/internal/usecase/port/ir/inference"
 	pbIrTableInference "landan-desktop-fyne/pb/ir/table/inference"
 )
 
 type DieHandler struct {
 	pbIrTableInference.UnimplementedDieServiceServer
-	dieTopDetectorModel     outputPortAnyModel.DieTopDetectorModel
-	dieValueClassifierModel outputPortAnyModel.DieValueClassifierModel
+	irInferenceDieUsecase usecasePortIrInference.DieUsecase
 }
 
-func NewDieHandler(
-	oDieTopDetectorModel outputPortAnyModel.DieTopDetectorModel,
-	oDieValueClassifierModel outputPortAnyModel.DieValueClassifierModel,
-) *DieHandler {
+func NewDieHandler(oDieUsecase usecasePortIrInference.DieUsecase) *DieHandler {
 	return &DieHandler{
-		dieTopDetectorModel:     oDieTopDetectorModel,
-		dieValueClassifierModel: oDieValueClassifierModel,
+		irInferenceDieUsecase: oDieUsecase,
 	}
 }
 
@@ -31,9 +26,9 @@ func (oSelf *DieHandler) Recognize(_ context.Context, oRequest *pbIrTableInferen
 		return nil, status.Error(codes.InvalidArgument, "image is empty")
 	}
 
-	aDies, err := oSelf.dieTopDetectorModel.Recognize(oRequest.GetImage())
+	aDies, err := oSelf.irInferenceDieUsecase.Recognize(oRequest.GetImage())
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "recognize dice: %v", err)
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	aItems := make([]*pbIrTableInference.Die, 0, len(aDies))

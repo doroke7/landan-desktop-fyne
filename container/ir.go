@@ -8,6 +8,7 @@ import (
 	inputApplicationIrInference "landan-desktop-fyne/internal/input/application/ir/inference"
 	outputApplicationOnnx "landan-desktop-fyne/internal/output/application/onnx"
 	outputApplicationOnnxModel "landan-desktop-fyne/internal/output/application/onnx/model"
+	usecaseApplicationIrInference "landan-desktop-fyne/internal/usecase/application/ir/inference"
 )
 
 type IRContainer struct {
@@ -32,8 +33,10 @@ func InitIRContainer(oContext context.Context) (*IRContainer, error) {
 		return nil, fmt.Errorf("init die value classifier model: %w", err)
 	}
 
+	oDieUsecase := usecaseApplicationIrInference.NewDieUsecase(oDieTopDetectorModel, oDieValueClassifierModel)
+
 	return &IRContainer{
-		IrInferenceDie:   inputApplicationIrInference.NewDieHandler(oDieTopDetectorModel, oDieValueClassifierModel),
+		IrInferenceDie:   inputApplicationIrInference.NewDieHandler(oDieUsecase),
 		IrInferencePoker: inputApplicationIrInference.NewPokerHandler(),
 		IrInferenceDisk:  inputApplicationIrInference.NewDiskHandler(),
 	}, nil
