@@ -42,6 +42,10 @@ type Config struct {
 	DEFAULT struct {
 		DEBUG bool `mapstructure:"debug"`
 	} `mapstructure:"default"`
+	DESKTOP struct {
+		WIDTH  int `mapstructure:"width"`
+		HEIGHT int `mapstructure:"height"`
+	} `mapstructure:"desktop"`
 	CAMERA struct {
 		DEVICE             string `mapstructure:"device"`
 		WIDTH              int    `mapstructure:"width"`
@@ -114,6 +118,9 @@ func Load(sDirectory string) (Config, error) {
 // Validate 检查启动所必需的配置是否齐全，由程序启动时调用。
 func (c Config) Validate() error {
 
+	if c.DESKTOP.WIDTH <= 0 || c.DESKTOP.HEIGHT <= 0 {
+		return fmt.Errorf("desktop.width/height must be > 0 (is config/desktop.yaml present? run from the project root)")
+	}
 	if c.CAMERA.WIDTH <= 0 || c.CAMERA.HEIGHT <= 0 || c.CAMERA.FRAMERATE <= 0 {
 		return fmt.Errorf("camera.width/height/framerate must be > 0 (is config/camera.yaml present? run from the project root)")
 	}

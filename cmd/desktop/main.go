@@ -29,7 +29,7 @@ var Command = &cobra.Command{
 		oWindow := oApp.NewWindow("Hello Fyne")
 		oWindow.SetMainMenu(ui.NewMainMenu(oWindow))
 		oWindow.SetContent(ui.NewContent())
-		oWindow.Resize(fyne.NewSize(1280, 720))
+		oWindow.Resize(fyne.NewSize(float32(bootstrap.CONFIG.DESKTOP.WIDTH), float32(bootstrap.CONFIG.DESKTOP.HEIGHT)))
 		oWindow.ShowAndRun()
 		return nil
 	},

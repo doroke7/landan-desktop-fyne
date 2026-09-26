@@ -125,3 +125,12 @@ docker compose up
 1. 命令格式要符合 compose：compose 只會呼叫 `<type> compose ... up|down|metadata`，所以用 `bin/desktop.sh` 轉成 `bin/main desktop compose ...`。
 2. compose 真正的入口是 `cmd/desktop/compose/up/main.go`，不是開視窗的主程式。
 3. `up` 再透過 launcher 啟動一個新的背景程序 `bin/main desktop` 去執行主程式，`up` 本身做完就結束。
+
+
+## UI 思維的演變
+1. 2010 做 web 時候 組件叫做 Widget ， 他是一個含 view 跟桌面 api 的程序。缺點是不合乎 http 協議思維，不利於 web 前後端開發（前後端邊界模糊）， 。譬如 Zend
+2. 2014 做 web 時候 捨棄組件。用 路由MVC框架 。缺點是 不利於 web 前後端開法，不利於 ui 組件管理。譬如 Laravel
+3. 2018 做 web 時候 重新擁抱組件思維，用 API + component 思維。
+
+## component 是什麼
+1. Component 可以看成「保留 Widget 的 UI 封裝思想，但把 Server-side / Backend coupling 拿掉，讓它回到 HTML/DOM 所在的前端環境」。
