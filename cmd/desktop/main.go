@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"landan-desktop-fyne/bootstrap"
+	"landan-desktop-fyne/cmd/desktop/compose"
 	"landan-desktop-fyne/ui"
 )
 
@@ -30,4 +31,8 @@ var Command = &cobra.Command{
 		oWindow.ShowAndRun()
 		return nil
 	},
+}
+
+func init() {
+	Command.AddCommand(compose.Command)
 }
