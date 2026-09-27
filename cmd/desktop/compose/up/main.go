@@ -18,18 +18,18 @@ var Command = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		bSupervisor, _ := cmd.Flags().GetBool("supervisor")
 
-		// 背景執行的 supervisor:StartSupervisor 帶著這個環境變數啟動它,它就留在前景執行 supervisor,不再啟動下一層。
+		// 背景執行的 supervisor:RunSupervisor 帶著這個環境變數啟動它,它就留在前景執行 supervisor,不再啟動下一層。
 		if bSupervisor && os.Getenv(bootstrap.SupervisorEnv) != "" {
-			return supervise(args[0])
+			return supervise()
 		}
 
 		var nPid int
 		var bStarted bool
 		var err error
 		if bSupervisor {
-			nPid, bStarted, err = bootstrap.StartSupervisor(args[0])
+			nPid, bStarted, err = bootstrap.RunSupervisor(args[0])
 		} else {
-			nPid, bStarted, err = bootstrap.StartLauncher()
+			nPid, bStarted, err = bootstrap.RunLauncher()
 		}
 		if err != nil {
 			helper.Error(args[0] + ": " + err.Error())
@@ -44,12 +44,8 @@ var Command = &cobra.Command{
 	},
 }
 
-func init() {
-	Command.Flags().Bool("supervisor", false, "由 supervisor 看守桌面程式,結束(崩潰或關掉視窗)就再執行一次 up")
-}
-
-// supervise runs in the background process that `up --supervisor` starts (see bootstrap.StartSupervisor).
-func supervise(sService string) error {
+// supervise is the background process that `up --supervisor` starts (see bootstrap.RunSupervisor).
+func supervise() error {
 	os.Unsetenv(bootstrap.SupervisorEnv) // 不要傳給它啟動的桌面程式
 	log.SetPrefix("[supervisor] ")
 
@@ -57,5 +53,5 @@ func supervise(sService string) error {
 	if err := bootstrap.CONFIG.Validate(); err != nil {
 		return err
 	}
-	return bootstrap.Supervise(sService)
+	return bootstrap.SuperviseLauncher()
 }
