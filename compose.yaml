@@ -1,0 +1,8 @@
+name: landan-desktop
+
+services:
+  desktop:
+    provider:
+      # docker compose 呼叫 `<type> compose ...`,type 不能帶參數,所以用 script/main.sh 轉接成
+      # `bin/main desktop compose ...`(compose 命令掛在 desktop 底下)。
+      type: ./script/main.sh

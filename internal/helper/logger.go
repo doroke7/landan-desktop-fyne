@@ -8,7 +8,7 @@ import (
 
 // Metadata tells docker compose which options `up` and `down` accept (none).
 const Metadata = `{
-  "description": "在宿主機啟動 landan 桌面程式(背景執行),down 時停止",
+  "description": "在宿主機前景執行 landan 桌面程式,直到視窗關閉",
   "up": {"parameters": []},
   "down": {"parameters": []}
 }`
