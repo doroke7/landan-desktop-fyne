@@ -8,7 +8,7 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 
-	ort "github.com/yalue/onnxruntime_go"
+	onnxruntime "github.com/yalue/onnxruntime_go"
 	xdraw "golang.org/x/image/draw"
 
 	bootstrap "landan-desktop-fyne/bootstrap"
@@ -24,7 +24,7 @@ const nDieValueClasses = 6
 //   - 輸出 [1, 6]，各點數的機率，index 0 對應點數 1
 type DieValueClassifierModel struct {
 	*AbstractModel
-	session    *ort.DynamicAdvancedSession
+	session    *onnxruntime.DynamicAdvancedSession
 	inputName  string
 	outputName string
 	width      int
@@ -38,7 +38,7 @@ func NewDieValueClassifierModel(oAbstractModel *AbstractModel) (outputPortAnyMod
 		return nil, fmt.Errorf("onnx.classify.die.value is empty (is config/onnx.yaml filled in? run from the project root)")
 	}
 
-	aInputs, aOutputs, err := ort.GetInputOutputInfo(sModelPath)
+	aInputs, aOutputs, err := onnxruntime.GetInputOutputInfo(sModelPath)
 	if err != nil {
 		return nil, fmt.Errorf("read model %s: %w", sModelPath, err)
 	}
@@ -50,7 +50,7 @@ func NewDieValueClassifierModel(oAbstractModel *AbstractModel) (outputPortAnyMod
 		return nil, fmt.Errorf("model %s: input shape %v is not a fixed [1, 3, H, W]", sModelPath, aShape)
 	}
 
-	oSession, err := ort.NewDynamicAdvancedSession(sModelPath, []string{aInputs[0].Name}, []string{aOutputs[0].Name}, nil)
+	oSession, err := onnxruntime.NewDynamicAdvancedSession(sModelPath, []string{aInputs[0].Name}, []string{aOutputs[0].Name}, nil)
 	if err != nil {
 		return nil, fmt.Errorf("load model %s: %w", sModelPath, err)
 	}
@@ -71,19 +71,19 @@ func (oSelf *DieValueClassifierModel) Classify(aImage []byte) (*domain.DieValue,
 		return nil, fmt.Errorf("decode image: %w", err)
 	}
 
-	oInput, err := ort.NewTensor(ort.NewShape(1, 3, int64(oSelf.height), int64(oSelf.width)), oSelf.toPlanes(oSource))
+	oInput, err := onnxruntime.NewTensor(onnxruntime.NewShape(1, 3, int64(oSelf.height), int64(oSelf.width)), oSelf.toPlanes(oSource))
 	if err != nil {
 		return nil, err
 	}
 	defer oInput.Destroy()
 
-	aOutputs := []ort.Value{nil}
-	if err := oSelf.session.Run([]ort.Value{oInput}, aOutputs); err != nil {
+	aOutputs := []onnxruntime.Value{nil}
+	if err := oSelf.session.Run([]onnxruntime.Value{oInput}, aOutputs); err != nil {
 		return nil, fmt.Errorf("run model: %w", err)
 	}
 	defer aOutputs[0].Destroy()
 
-	oOutput, ok := aOutputs[0].(*ort.Tensor[float32])
+	oOutput, ok := aOutputs[0].(*onnxruntime.Tensor[float32])
 	if !ok {
 		return nil, fmt.Errorf("model output is not float32")
 	}

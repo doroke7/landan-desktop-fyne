@@ -116,7 +116,7 @@ docker compose up
 -> bin/main desktop compose up
 -> cmd/desktop/compose/up/main.go
 -> bootstrap.StartLauncher()
--> bin/main desktop compose supervise（背景執行，結束就自動重啟）
+-> bin/main desktop compose up supervise（背景執行，結束就自動重啟）
 -> bin/main desktop
 -> cmd/desktop/main.go（開視窗）
 ```
@@ -129,7 +129,7 @@ flowchart TD
 
     subgraph M["bin/main：同一個執行檔,靠子命令分成三個程序"]
         C["desktop compose up<br/>程序 1：跑完就結束"]
-        D["desktop compose supervise<br/>程序 2：supervisor,常駐"]
+        D["desktop compose up supervise<br/>程序 2：supervisor,常駐"]
         E["desktop<br/>程序 3：視窗"]
     end
 
@@ -142,7 +142,7 @@ flowchart TD
 
 1. 命令格式要符合 compose：compose 只會呼叫 `<type> compose ... up|down|metadata`，所以用 `bin/desktop.sh` 轉成 `bin/main desktop compose ...`。
 2. compose 真正的入口是 `cmd/desktop/compose/up/main.go`，不是開視窗的主程式。
-3. `up` 再透過 launcher 啟動一個新的背景程序 `bin/main desktop compose supervise`，`up` 本身做完就結束。
+3. `up` 再透過 launcher 啟動一個新的背景程序 `bin/main desktop compose up supervise`，`up` 本身做完就結束。
 4. supervisor 負責執行 `bin/main desktop`：程式只要結束就自動重啟（崩潰，或使用者關掉視窗都一樣），等待時間 1s、2s、4s…上限 30s，穩定跑超過 1 分鐘後重新計算；只有 `docker compose down` 會真的停掉。
 5. compose.yaml 的 `restart` 對 provider 服務沒有作用，自動重啟是 supervisor 做的。`down` 會停掉 supervisor 和它的子程序；日誌在 `runtime/desktop/desktop.log`。
 

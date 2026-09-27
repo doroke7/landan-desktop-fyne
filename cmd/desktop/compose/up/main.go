@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"landan-desktop-fyne/bootstrap"
+	"landan-desktop-fyne/cmd/desktop/compose/up/supervise"
 	"landan-desktop-fyne/internal/helper"
 )
 
@@ -26,4 +27,8 @@ var Command = &cobra.Command{
 		helper.Info(fmt.Sprintf("%s: 已啟動 (pid %d),日誌 %s", args[0], nPid, bootstrap.LauncherLogPath()))
 		return nil
 	},
+}
+
+func init() {
+	Command.AddCommand(supervise.Command)
 }

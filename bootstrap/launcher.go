@@ -39,7 +39,7 @@ func readLauncherPid() (int, bool) {
 	return nPid, err == nil && nPid > 0
 }
 
-// StartLauncher runs `<this executable> desktop compose supervise` (the window, kept alive) in the background.
+// StartLauncher runs `<this executable> desktop compose up supervise` (the window, kept alive) in the background.
 // started is false, and nPid is the existing process, if it is already running.
 func StartLauncher() (nPid int, started bool, err error) {
 
@@ -90,7 +90,7 @@ func spawnLauncher(sExe string) (int, error) {
 		}
 		defer oLog.Close()
 
-		oCmd := exec.Command(sExe, "desktop", "compose", "supervise")
+		oCmd := exec.Command(sExe, "desktop", "compose", "up", "supervise")
 		oCmd.Stdout = oLog
 		oCmd.Stderr = oLog
 		if err := oCmd.Start(); err != nil {
@@ -102,7 +102,7 @@ func spawnLauncher(sExe string) (int, error) {
 	case "darwin", "linux":
 		// Let a shell start it with nohup in the background and print its pid.
 		// nohup makes it ignore SIGHUP, so closing the terminal that ran `docker compose up` does not kill it.
-		aOutput, err := exec.Command("sh", "-c", `nohup "$0" desktop compose supervise >>"$1" 2>&1 </dev/null & echo $!`, sExe, LauncherLogPath()).Output()
+		aOutput, err := exec.Command("sh", "-c", `nohup "$0" desktop compose up supervise >>"$1" 2>&1 </dev/null & echo $!`, sExe, LauncherLogPath()).Output()
 		if err != nil {
 			return 0, err
 		}
