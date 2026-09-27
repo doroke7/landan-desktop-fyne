@@ -2,7 +2,7 @@
 //
 //	go run main.go desktop
 //
-// Its subcommand `compose` (cmd/desktop/compose) is what docker compose calls through bin/desktop.sh.
+// Its subcommand `compose` (cmd/desktop/compose) is what docker compose calls through bin/desktop_compose_up.sh or bin/desktop_compose_up_supervisor.sh.
 package desktop
 
 import (

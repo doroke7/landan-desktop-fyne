@@ -109,42 +109,64 @@ w
 
 ## docker compose up 的流程
 
+compose.yaml 的 `provider.type` 二選一（都由 `make build` 產生）：
+
+| 轉接腳本 | 行為 |
+| --- | --- |
+| `bin/desktop_compose_up.sh` | 背景啟動視窗，程式結束（崩潰或關掉視窗）就結束，不重啟 |
+| `bin/desktop_compose_up_supervisor.sh` | 背景啟動 supervisor，視窗結束就自動重啟 |
+
+不重啟：
+
 ```
 docker compose up
--> bin/desktop.sh
--> bin/main
+-> bin/desktop_compose_up.sh
 -> bin/main desktop compose up
 -> cmd/desktop/compose/up/main.go
 -> bootstrap.StartLauncher()
--> bin/main desktop compose up supervise（背景執行，結束就自動重啟）
--> bin/main desktop
--> cmd/desktop/main.go（開視窗）
+-> bin/main desktop（背景執行，開視窗）
 ```
 
-流程圖：
+有重啟：
+
+```
+docker compose up
+-> bin/desktop_compose_up_supervisor.sh（在參數最後加上 --supervisor）
+-> bin/main desktop compose up desktop --supervisor（程序 1：啟動 supervisor 就結束）
+-> bin/main desktop compose up --supervisor desktop（程序 2：背景常駐，帶環境變數 LANDAN_DESKTOP_SUPERVISOR）
+-> bin/main desktop compose up desktop（程序 3：啟動視窗就結束，視窗不在了 supervisor 會再執行一次）
+-> bin/main desktop（程序 4：視窗）
+```
+
+流程圖（有重啟的版本）：
 
 ```mermaid
 flowchart TD
-    A["docker compose up"] --> B["./bin/desktop.sh compose up desktop<br/>(轉接腳本,exec bin/main)"]
+    A["docker compose up"] --> B["./bin/desktop_compose_up_supervisor.sh compose up desktop<br/>(轉接腳本,exec bin/main,加上 --supervisor)"]
 
-    subgraph M["bin/main：同一個執行檔,靠子命令分成三個程序"]
-        C["desktop compose up<br/>程序 1：跑完就結束"]
-        D["desktop compose up supervise<br/>程序 2：supervisor,常駐"]
-        E["desktop<br/>程序 3：視窗"]
+    subgraph M["bin/main：同一個執行檔,靠子命令分成不同程序"]
+        C["desktop compose up --supervisor<br/>程序 1：跑完就結束"]
+        D["desktop compose up --supervisor（帶環境變數）<br/>程序 2：supervisor,常駐"]
+        F["desktop compose up<br/>程序 3：跑完就結束"]
+        E["desktop<br/>程序 4：視窗"]
     end
 
     B --> C
     C -- "nohup ... &" --> D
-    D -- "啟動；結束後自動重啟" --> E
+    D -- "執行；視窗不在了就再執行" --> F
+    F -- "nohup ... &" --> E
+    D -. "盯著 desktop.pid" .-> E
 ```
+
+不重啟的版本只有 `desktop compose up` 和 `desktop` 兩個程序：`up` 直接在背景啟動 `desktop`，中間沒有 supervisor。
 
 關鍵：
 
-1. 命令格式要符合 compose：compose 只會呼叫 `<type> compose ... up|down|metadata`，所以用 `bin/desktop.sh` 轉成 `bin/main desktop compose ...`。
+1. 命令格式要符合 compose：compose 只會呼叫 `<type> compose ... up|down|metadata`，所以用轉接腳本轉成 `bin/main desktop compose ...`。
 2. compose 真正的入口是 `cmd/desktop/compose/up/main.go`，不是開視窗的主程式。
-3. `up` 再透過 launcher 啟動一個新的背景程序 `bin/main desktop compose up supervise`，`up` 本身做完就結束。
-4. supervisor 負責執行 `bin/main desktop`：程式只要結束就自動重啟（崩潰，或使用者關掉視窗都一樣），等待時間 1s、2s、4s…上限 30s，穩定跑超過 1 分鐘後重新計算；只有 `docker compose down` 會真的停掉。
-5. compose.yaml 的 `restart` 對 provider 服務沒有作用，自動重啟是 supervisor 做的。`down` 會停掉 supervisor 和它的子程序；日誌在 `runtime/desktop/desktop.log`。
+3. 兩支腳本只差一個旗標：supervisor 版會在參數最後加上 `--supervisor`，`up` 看到它就在背景啟動 supervisor（帶環境變數 `LANDAN_DESKTOP_SUPERVISOR`，讓那個程序知道自己就是 supervisor，不要再啟動下一層），`up` 本身做完就結束。
+4. supervisor 不直接啟動視窗，而是執行不帶旗標的 `up`，再盯著 `desktop.pid`：視窗只要不在了（崩潰，或使用者關掉視窗都一樣）就再執行一次 `up`，等待時間 1s、2s、4s…上限 30s，穩定跑超過 1 分鐘後重新計算；只有 `docker compose down` 會真的停掉。
+5. compose.yaml 的 `restart` 對 provider 服務沒有作用，自動重啟是 supervisor 做的。`down` 先停 supervisor（`supervisor.pid`）再停視窗（`desktop.pid`）；日誌在 `runtime/desktop/desktop.log`。
 
 
 ## UI 思維的演變

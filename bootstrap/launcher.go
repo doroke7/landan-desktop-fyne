@@ -1,6 +1,6 @@
-// launcher.go runs the desktop app as a detached background process and stops it again.
-// The background process is the supervisor (supervisor.go), which runs the app and restarts it after a crash.
-// The supervisor's process id is kept in ./runtime/desktop/desktop.pid, the output of both in desktop.log.
+// launcher.go runs the desktop app, and the supervisor that keeps it alive (supervisor.go), as detached background
+// processes and stops them again.
+// Their process ids are kept in ./runtime/desktop/desktop.pid and supervisor.pid, their output in desktop.log.
 //
 // Everything lives in this one file and only uses APIs that compile on every OS;
 // the differences are handled with `switch runtime.GOOS`, one case per OS family:
@@ -28,10 +28,11 @@ var sLauncherDirectory = filepath.Join("runtime", "desktop")
 // LauncherLogPath is where the background process writes its output.
 func LauncherLogPath() string { return filepath.Join(sLauncherDirectory, "desktop.log") }
 
-func launcherPidPath() string { return filepath.Join(sLauncherDirectory, "desktop.pid") }
+func launcherPidPath() string   { return filepath.Join(sLauncherDirectory, "desktop.pid") }
+func supervisorPidPath() string { return filepath.Join(sLauncherDirectory, "supervisor.pid") }
 
-func readLauncherPid() (int, bool) {
-	aData, err := os.ReadFile(launcherPidPath())
+func readLauncherPid(sPidPath string) (int, bool) {
+	aData, err := os.ReadFile(sPidPath)
 	if err != nil {
 		return 0, false
 	}
@@ -39,9 +40,24 @@ func readLauncherPid() (int, bool) {
 	return nPid, err == nil && nPid > 0
 }
 
-// StartLauncher runs `<this executable> desktop compose up supervise` (the window, kept alive) in the background.
+// SupervisorEnv marks the background process that must run the supervisor itself instead of starting another one.
+const SupervisorEnv = "LANDAN_DESKTOP_SUPERVISOR"
+
+// StartLauncher runs `<this executable> desktop` (the window) in the background.
 // started is false, and nPid is the existing process, if it is already running.
 func StartLauncher() (nPid int, started bool, err error) {
+	return startBackground(launcherPidPath(), []string{"desktop"})
+}
+
+// StartSupervisor runs `<this executable> desktop compose up --supervisor sService` in the background;
+// that process runs `desktop compose up` again whenever the window is gone (see Supervise).
+// started is false, and nPid is the existing process, if it is already running.
+func StartSupervisor(sService string) (nPid int, started bool, err error) {
+	os.Setenv(SupervisorEnv, "1") // 子程序繼承,見 cmd/desktop/compose/up
+	return startBackground(supervisorPidPath(), []string{"desktop", "compose", "up", "--supervisor", sService})
+}
+
+func startBackground(sPidPath string, aArgs []string) (nPid int, started bool, err error) {
 
 	sExe, err := os.Executable()
 	if err != nil {
@@ -49,7 +65,7 @@ func StartLauncher() (nPid int, started bool, err error) {
 	}
 
 	// Step1:已經在跑就不要再開第二個。讀 desktop.pid,確認那個 pid 還活著且是我們的程式。
-	if nOld, ok := readLauncherPid(); ok && runningLauncher(nOld, sExe) {
+	if nOld, ok := readLauncherPid(sPidPath); ok && runningLauncher(nOld, sExe) {
 		return nOld, false, nil
 	}
 
@@ -58,27 +74,27 @@ func StartLauncher() (nPid int, started bool, err error) {
 		return 0, false, err
 	}
 
-	// Step3:在背景啟動 supervisor(它再去啟動並看守視窗程式),拿到它的 pid 寫進 desktop.pid,down 靠這個檔案找到它。
-	nPid, err = spawnLauncher(sExe)
+	// Step3:在背景啟動,拿到 pid 寫進 pid 檔,down 靠這個檔案找到它。
+	nPid, err = spawnLauncher(sExe, aArgs)
 	if err != nil {
 		return 0, false, err
 	}
-	if err := os.WriteFile(launcherPidPath(), []byte(strconv.Itoa(nPid)), 0o644); err != nil {
+	if err := os.WriteFile(sPidPath, []byte(strconv.Itoa(nPid)), 0o644); err != nil {
 		return 0, false, err
 	}
 
 	// Step4:等 1.5 秒再檢查一次還活著沒。設定檔錯誤會讓它立刻結束,這時要刪掉 pid 檔並把日誌尾巴當錯誤回報。
 	time.Sleep(1500 * time.Millisecond)
 	if !runningLauncher(nPid, sExe) {
-		os.Remove(launcherPidPath())
+		os.Remove(sPidPath)
 		return 0, false, fmt.Errorf("程式啟動後立刻結束,日誌 %s:\n%s", LauncherLogPath(), tailLauncher(LauncherLogPath(), 5))
 	}
 	return nPid, true, nil
 }
 
-// spawnLauncher starts sExe in the background and returns its pid.
+// spawnLauncher starts sExe with aArgs in the background and returns its pid.
 // The working directory stays the project root: the app reads ./config from it.
-func spawnLauncher(sExe string) (int, error) {
+func spawnLauncher(sExe string, aArgs []string) (int, error) {
 
 	switch runtime.GOOS {
 
@@ -90,7 +106,7 @@ func spawnLauncher(sExe string) (int, error) {
 		}
 		defer oLog.Close()
 
-		oCmd := exec.Command(sExe, "desktop", "compose", "up", "supervise")
+		oCmd := exec.Command(sExe, aArgs...)
 		oCmd.Stdout = oLog
 		oCmd.Stderr = oLog
 		if err := oCmd.Start(); err != nil {
@@ -102,7 +118,9 @@ func spawnLauncher(sExe string) (int, error) {
 	case "darwin", "linux":
 		// Let a shell start it with nohup in the background and print its pid.
 		// nohup makes it ignore SIGHUP, so closing the terminal that ran `docker compose up` does not kill it.
-		aOutput, err := exec.Command("sh", "-c", `nohup "$0" desktop compose up supervise >>"$1" 2>&1 </dev/null & echo $!`, sExe, LauncherLogPath()).Output()
+		// $0 is the log file, "$@" is the command to run.
+		aShell := append([]string{"-c", `nohup "$@" >>"$0" 2>&1 </dev/null & echo $!`, LauncherLogPath(), sExe}, aArgs...)
+		aOutput, err := exec.Command("sh", aShell...).Output()
 		if err != nil {
 			return 0, err
 		}
@@ -113,18 +131,32 @@ func spawnLauncher(sExe string) (int, error) {
 	}
 }
 
-// StopLauncher asks the background process to quit (so the recording is finalized) and waits for it.
-// nPid is 0 if nothing was running.
+// StopLauncher stops the supervisor first (or it would start the window again), then the window:
+// the window is asked to quit so the recording is finalized. nPid is 0 if nothing was running.
 func StopLauncher() (nPid int, err error) {
+
+	nSupervisor, err := stopBackground(supervisorPidPath())
+	if err != nil {
+		return nSupervisor, err
+	}
+	nPid, err = stopBackground(launcherPidPath())
+	if nPid == 0 {
+		nPid = nSupervisor
+	}
+	return nPid, err
+}
+
+// stopBackground asks the process in sPidPath to quit and waits for it. nPid is 0 if nothing was running.
+func stopBackground(sPidPath string) (nPid int, err error) {
 
 	sExe, err := os.Executable()
 	if err != nil {
 		return 0, err
 	}
 
-	nPid, ok := readLauncherPid()
+	nPid, ok := readLauncherPid(sPidPath)
 	if !ok || !runningLauncher(nPid, sExe) {
-		os.Remove(launcherPidPath())
+		os.Remove(sPidPath)
 		return 0, nil
 	}
 
@@ -140,7 +172,7 @@ func StopLauncher() (nPid int, err error) {
 		}
 	}
 
-	os.Remove(launcherPidPath())
+	os.Remove(sPidPath)
 	return nPid, nil
 }
 
@@ -174,7 +206,7 @@ func terminateLauncher(nPid int) error {
 
 	case "windows":
 		// Windows cannot deliver signals to another process, so it is killed.
-		// The supervisor's child (the app) is killed with it, or it would be left running.
+		// /T also kills the processes it started.
 		if err := exec.Command("taskkill", "/T", "/F", "/PID", strconv.Itoa(nPid)).Run(); err != nil {
 			return oProcess.Kill()
 		}

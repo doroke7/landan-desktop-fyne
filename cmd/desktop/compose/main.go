@@ -1,10 +1,12 @@
-// Package compose is the entry that docker compose calls (through bin/desktop.sh):
+// Package compose is the entry that docker compose calls, through one of two scripts (compose.yaml picks one):
 //
-//	main desktop compose --project-name=NAME up SERVICE
-//	main desktop compose --project-name=NAME down SERVICE
-//	main desktop compose metadata
+//	bin/desktop_compose_up.sh             main desktop compose --project-name=NAME up SERVICE
+//	bin/desktop_compose_up_supervisor.sh  main desktop compose --project-name=NAME up SERVICE --supervisor
+//	both                                  main desktop compose --project-name=NAME down SERVICE
+//	both                                  main desktop compose metadata
 //
-// `up` starts `main desktop compose up supervise` in the background, which runs the app and restarts it after a crash.
+// `up` starts `main desktop` in the background. With --supervisor it starts a supervisor instead,
+// which runs `up` again whenever the window is gone (a crash, or the user closing it).
 package compose
 
 import (

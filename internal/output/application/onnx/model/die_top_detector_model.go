@@ -115,6 +115,10 @@ func (oSelf *DieTopDetectorModel) Recognize(aImage []byte) ([]*domain.Die, error
 	return aDies, nil
 }
 
+// main desktop compose up supervisor
+// main desktop compose up
+// main desktop
+
 // toPlanes 把圖縮到模型輸入大小，排成 RGB 三個平面（NCHW），數值 0~1。
 func (oSelf *DieTopDetectorModel) toPlanes(oSource image.Image) []float32 {
 	oResized := image.NewRGBA(image.Rect(0, 0, oSelf.width, oSelf.height))
