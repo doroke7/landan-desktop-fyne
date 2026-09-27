@@ -1,7 +1,0 @@
-name: landan-desktop
-
-services:
-  desktop:
-    provider:
-      # 先 make build(會一併產生這支腳本):背景啟動 supervisor,視窗結束(崩潰或關掉)就自動重啟
-      type: ./bin/desktop_compose_up.sh
