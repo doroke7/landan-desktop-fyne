@@ -4,8 +4,8 @@
 //	main desktop compose --project-name=NAME down SERVICE
 //	main desktop compose metadata
 //
-// `up --supervisor` starts a supervisor in the background: it starts `main desktop` and starts it again whenever
-// the window is gone (a crash, or the user closing it). `up` alone starts `main desktop` in the background, once.
+// `up` starts `main desktop` in the background, once. `up --supervisor` starts `main desktop --supervisor` instead,
+// which runs the window as a child and runs it again whenever it exits (a crash, or the user closing it).
 package compose
 
 import (

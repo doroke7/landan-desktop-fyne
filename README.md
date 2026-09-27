@@ -116,10 +116,9 @@ docker compose up
 -> bin/desktop_compose_up.sh（在參數最後加上 --supervisor）
 -> bin/main desktop compose up desktop --supervisor
 -> cmd/desktop/compose/up/main.go
--> bootstrap.RunSupervisor()
--> bin/main desktop compose up --supervisor desktop（背景執行，帶環境變數 LANDAN_DESKTOP_SUPERVISOR）
--> bootstrap.SuperviseLauncher()：檢查 desktop.pid，視窗不在就 bootstrap.RunLauncher()
--> bin/main desktop（背景執行，開視窗）
+-> bootstrap.RunLauncher(true)
+-> bin/main desktop --supervisor（背景執行，supervisor：執行視窗，結束就再執行）
+-> bin/main desktop（視窗）
 ```
 
 流程圖：
@@ -130,25 +129,43 @@ flowchart TD
 
     subgraph M["bin/main：同一個執行檔,靠子命令分成三個程序"]
         C["desktop compose up --supervisor<br/>程序 1：跑完就結束"]
-        D["desktop compose up --supervisor（帶環境變數）<br/>程序 2：supervisor,常駐"]
+        D["desktop --supervisor<br/>程序 2：supervisor,常駐"]
         E["desktop<br/>程序 3：視窗"]
     end
 
     B --> C
     C -- "nohup ... &" --> D
-    D -- "視窗不在就啟動" --> E
-    D -. "盯著 desktop.pid" .-> E
+    D -- "啟動；結束後自動重啟" --> E
 ```
 
 不要重啟的話，直接下 `bin/main desktop compose up desktop`（不帶 `--supervisor`）：只有程序 1 和程序 3，`up` 直接在背景啟動 `desktop`，中間沒有 supervisor。
+
+執行次序（`docker compose up`）：
+
+1. compose 執行 `bin/desktop_compose_up.sh compose --project-name=… up desktop`。腳本 `exec` 成 `bin/main desktop compose --project-name=… up desktop --supervisor`（程序 1）。
+2. `up`（`cmd/desktop/compose/up/main.go`）呼叫 `bootstrap.RunLauncher(true)`：
+   1. 讀 `runtime/desktop/desktop.pid`，那個程序還活著就回報「已經在執行」並結束，不開第二個。
+   2. 用 `nohup` 在背景啟動 `bin/main desktop --supervisor`（程序 2），日誌寫進 `runtime/desktop/desktop.log`，把它的 pid 寫進 `desktop.pid`。
+   3. 等 1.5 秒再檢查一次程序 2 還活著沒；已經結束（例如設定錯誤）就刪掉 pid 檔，把日誌最後幾行當錯誤回報。
+3. 程序 1 印出「已啟動 (pid …)」後結束，compose 才會繼續。
+4. 程序 2（`cmd/desktop/main.go`）先檢查設定（`CONFIG.Validate()`），再進入 `bootstrap.SuperviseLauncher()` 的迴圈：
+   1. 啟動 `bin/main desktop` 當子程序（程序 3，開視窗），等它結束。
+   2. 子程序結束（崩潰，或使用者關掉視窗）就等 1s、2s、4s…（上限 30s，穩定跑超過 1 分鐘後重算），回到上一步。
+
+執行次序（`docker compose down`）：
+
+1. compose 執行同一支腳本，`down desktop --supervisor`（`down`、`metadata` 也收得下這個旗標，但不使用）。
+2. `down`（`cmd/desktop/compose/down/main.go`）呼叫 `bootstrap.StopLauncher()`：讀 `desktop.pid`，對程序 2 送停止訊號（Windows 沒有訊號，改用 `taskkill /T /F` 連子程序一起結束）。
+3. 程序 2 收到後把停止訊號轉給視窗，等它收尾（錄影檔要寫完），最多 12 秒，超過就強制結束視窗，然後自己結束，不再重啟。
+4. `down` 最多等 15 秒讓程序 2 結束，再刪掉 `desktop.pid`。
 
 關鍵：
 
 1. 命令格式要符合 compose：compose 只會呼叫 `<type> compose ... up|down|metadata`，所以用轉接腳本轉成 `bin/main desktop compose ...`。
 2. compose 真正的入口是 `cmd/desktop/compose/up/main.go`，不是開視窗的主程式。
-3. `up --supervisor` 要立刻結束（docker compose 會等 provider 程序結束才繼續），所以它在背景啟動一個帶環境變數 `LANDAN_DESKTOP_SUPERVISOR` 的自己，那個程序看到環境變數就知道自己是常駐的 supervisor，不再啟動下一層。
-4. supervisor 每秒檢查 `desktop.pid`：視窗只要不在了（崩潰，或使用者關掉視窗都一樣）就再啟動一次，等待時間 1s、2s、4s…上限 30s，穩定跑超過 1 分鐘後重新計算；只有 `docker compose down` 會真的停掉。
-5. compose.yaml 的 `restart` 對 provider 服務沒有作用，自動重啟是 supervisor 做的。`down` 先停 supervisor（`supervisor.pid`）再停視窗（`desktop.pid`）；日誌在 `runtime/desktop/desktop.log`。
+3. `up` 要立刻結束（docker compose 會等 provider 程序結束才繼續），所以 supervisor 是它在背景啟動的另一個程序：`desktop --supervisor`。
+4. supervisor 把視窗當子程序執行，子程序只要結束（崩潰，或使用者關掉視窗都一樣）就重啟，等待時間 1s、2s、4s…上限 30s，穩定跑超過 1 分鐘後重新計算；只有 `docker compose down` 會真的停掉。
+5. compose.yaml 的 `restart` 對 provider 服務沒有作用，自動重啟是 supervisor 做的。pid 檔 `desktop.pid` 記的是背景程序（有 `--supervisor` 就是 supervisor）；`down` 對它送停止訊號，supervisor 再轉給視窗。日誌在 `runtime/desktop/desktop.log`。
 
 
 ## UI 思維的演變
