@@ -1,9 +1,13 @@
 // Package camera captures a webcam, previewing it frame by frame while recording it to an mp4 file
 // and saving a still snapshot at a fixed interval.
 //
-// It has two backends behind the same Stream function:
+// It has four backends behind the same Stream function:
 //   - macOS with cgo: AVFoundation, called directly from Objective-C (stream_darwin.go, avf_stream_darwin.m).
-//   - everything else (Windows, Linux, macOS without cgo): the ffmpeg program (stream_ffmpeg.go).
+//   - Windows with cgo: Media Foundation, called directly via COM (stream_windows.go, mf_stream_windows.c).
+//   - Windows without cgo: the same Media Foundation COM APIs, called through raw vtable pointers via
+//     syscall.SyscallN instead of C (stream_windows_syscall.go). No C compiler is needed to build this
+//     one, so it's what a CGO_ENABLED=0 cross-compile from another OS produces.
+//   - everything else (Linux, macOS without cgo): the ffmpeg program (stream_ffmpeg.go).
 package camera
 
 import (
@@ -15,9 +19,9 @@ import (
 
 // Options controls what Stream shows and writes to disk.
 type Options struct {
-	// Device picks the camera. Empty means the system default (on Windows: the first camera ffmpeg lists).
-	// AVFoundation accepts an index or part of the name; the ffmpeg backend takes the device name on Windows
-	// and the device path (e.g. /dev/video0) on Linux.
+	// Device picks the camera. Empty means the system default.
+	// AVFoundation and Media Foundation both accept a zero-based index or part of the device's name;
+	// the ffmpeg backend takes the device name on Windows and the device path (e.g. /dev/video0) on Linux.
 	Device string
 
 	Width     int // capture size
