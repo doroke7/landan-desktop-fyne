@@ -11,8 +11,8 @@ help:
 build:
 	go build -o bin/main .
 
-.PHONY: run
-run: build
+.PHONY: start
+start: build
 	./bin/main desktop
 
 .PHONY: protoc

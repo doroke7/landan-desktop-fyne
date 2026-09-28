@@ -21,6 +21,13 @@ import (
 	"time"
 )
 
+// ShowPreviewOverlay is only available on macOS (AVCaptureVideoPreviewLayer is an AVFoundation
+// type). On this backend it is a no-op.
+func ShowPreviewOverlay(fX, fY, fWidth, fHeight float32) {}
+
+// HidePreviewOverlay is only available on macOS. On this backend it is a no-op.
+func HidePreviewOverlay() {}
+
 // readJPEG returns the next JPEG from a concatenated MJPEG stream.
 // Inside JPEG entropy data every 0xFF is stuffed as FF 00, so the bytes FF D9 only ever mean "end of image".
 func readJPEG(oReader *bufio.Reader) ([]byte, error) {

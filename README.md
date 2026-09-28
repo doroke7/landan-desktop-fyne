@@ -31,7 +31,7 @@ Python 做桌面程式的缺點。python 比較拿不到全部os 的性能
 
 原本用 `ffmpeg -f avfoundation` 讀攝影機，從 stdout 收 MJPEG 再解碼顯示；macOS 現在改成用 Objective-C 直接呼叫 AVFoundation（`pkg/camera/`）；Windows、Linux 仍走 ffmpeg，見下方「跨平台」。
 
-**測試條件（2026-09-26）**
+**測試條件 **
 
 - Apple M4（10 核心）、macOS 26.5、ffmpeg 8.1.2、內建「MacBook Air相機」
 - 擷取 1280x720 @ 30fps；錄影 4Mbps H.264（兩邊都是硬體編碼）；預覽 640x360 @ 15fps
@@ -45,10 +45,13 @@ Python 做桌面程式的缺點。python 比較拿不到全部os 的性能
 | --- | --- | --- | --- |
 | ffmpeg | `ffmpeg -f avfoundation`（nv12）→ 預覽 MJPEG + mp4 + 截圖，只算 ffmpeg 行程 | user 4.43s + sys 1.04s = 5.47s | 約 41~46% |
 | Objective-C | `pkg/camera`，只算測試行程 | BGRA 版 44.8%，改成 YUV 版 43.3% | 約 43~45% |
+| GPU 疊加* | `AVCaptureVideoPreviewLayer` 直接疊在原生視窗上，WindowServer 從 GPU 合成，不經過 RGBA 轉換或 `canvas.Image` | 3 次分別 13.2%／11.9%／17.0% | 約 12~17%（平均 ~14%） |
 
 ffmpeg 的牆鐘時間是 13.5 秒（含啟動），除以 12 或 13.5 會差一點，所以寫成範圍。
 
-**結論：同樣負載下 CPU 差不多，沒有明顯贏家。** Objective-C 版的好處不在 CPU：
+\* GPU 疊加那行口徑不一樣：量的是**整個 App 行程**（含 Fyne 的 OpenGL 渲染），不是只算擷取那段，因為這個做法沒辦法脫離真正的視窗/主執行緒單獨測。跟上面兩行不是同一個基準，只能當內部參考，不是嚴格對照組。細節見下方「怎麼重現」。
+
+**結論：CPU 上 GPU 疊加明顯比另外兩個做法低,但因為量測口徑不同,不是嚴格對照。** 同樣負載下 ffmpeg 跟 Objective-C 這兩個 CPU 貼圖做法差不多,沒有明顯贏家,Objective-C 版的好處不在 CPU：
 
 - 不用安裝 ffmpeg，不用解析 stdout 的 MJPEG，預覽和截圖直接拿到像素，不經過 JPEG 壓縮再解壓（ffmpeg 版 App 端另外要 JPEG 解碼並渲染，之前量到約 11%，這次沒重量）
 - 權限、相機中斷這類事件可以直接處理，錯誤訊息比 ffmpeg 的 stderr 好用
@@ -62,9 +65,10 @@ ffmpeg 的牆鐘時間是 13.5 秒（含啟動），除以 12 或 13.5 會差一
 
 **這份量測的限制**
 
-- 每種只量**一次**，沒有重複取樣，單次結果有誤差。
-- 兩邊都只量「擷取這一段」：Objective-C 版是在測試裡量的，ffmpeg 版只算 ffmpeg 行程，都沒含 Fyne 的 OpenGL 渲染，不是完整 App 的實測。
-- **和舊紀錄對不上**：更早一次調校記錄顯示 ffmpeg 版 App 約 11% + ffmpeg 約 17.8%，合計約 29%；今天同樣參數量到的 ffmpeg 是 41~46%。原因沒查出來（可能是當時手勢反應沒開、光線不同、或量測方法不同）。所以那個 29% **不要**拿來跟今天的 Objective-C 數字比。
+- ffmpeg、Objective-C 兩種各只量**一次**，沒有重複取樣，單次結果有誤差；GPU 疊加量了 3 次，範圍 11.9%~17.0%，也不算窄。
+- ffmpeg、Objective-C 兩邊都只量「擷取這一段」（Objective-C 版是在測試裡量的，ffmpeg 版只算 ffmpeg 行程），都沒含 Fyne 的 OpenGL 渲染，不是完整 App 的實測。GPU 疊加剛好相反：量的是**整個 App 行程**（含 Fyne 渲染、視窗事件迴圈），因為這個做法沒辦法脫離真正的視窗/主執行緒單獨測——三種口徑不完全一樣，GPU 疊加那行只能當內部參考。
+- GPU 疊加沒把 WindowServer（真正做像素合成的地方）自己的 CPU 算進去——這正是這個做法的重點（把工作丟給 GPU/系統合成器，不是我們的程式碼在做），但也代表這個數字沒有反映「這台機器整體為了顯示這個畫面付出的全部成本」。也沒辦法看螢幕確認疊加層實際位置有沒有對齊，只驗證了 App 不會 crash、CPU 數字合理下降。
+- **和舊紀錄對不上**：更早一次調校記錄顯示 ffmpeg 版 App 約 11% + ffmpeg 約 17.8%，合計約 29%；今天同樣參數量到的 ffmpeg 是 41~46%。原因沒查出來（可能是當時手勢反應沒開、光線不同、或量測方法不同）。所以那個 29% **不要**拿來跟今天的數字比。
 - 攝影機實際幀率會隨光線變動（這台約 27~28fps，不是 30），會影響 CPU。
 
 **怎麼重現**
@@ -81,11 +85,22 @@ ffmpeg 版（`-t` 要放在 `-i` 前面，放在輸出前面只會限制第一�
 
 Objective-C 版：寫一個暫時的測試呼叫 `camera.Stream`（參數同上，`SnapshotEvery` 設 2 秒，跑 12 秒），前後各用 `syscall.Getrusage` 取 user + sys 時間，除以牆鐘時間，跑完刪掉測試。
 
+GPU 疊加版：這個做法離不開真正的視窗/主執行緒，沒辦法用上面那種 headless 測試量，只能量整個 App。在 `cmd/desktop/main.go` 的 `ShowAndRun()` 前面暫時加一段用環境變數觸發、跑完就刪掉的程式碼：
+
+```go
+if nSec, err := strconv.Atoi(os.Getenv("BENCH_GPU")); err == nil && nSec > 0 {
+    time.AfterFunc(2*time.Second, func() { fyne.Do(ui.ToggleCamera) })
+    time.AfterFunc(time.Duration(nSec)*time.Second, func() { fyne.Do(oApp.Quit) })
+}
+```
+
+編出來後 `BENCH_GPU=35 ./bin/main desktop`，在另一個終端機用 `ps -p <pid> -o time=` 在第 8 秒、第 20 秒左右各取樣一次，算 Δtime/Δwall。
+
 **實作備註**（`pkg/camera/`）
-w
+
 - macOS + cgo 用 AVFoundation；其他平台（或 `CGO_ENABLED=0`）用 ffmpeg 後端。`.m` / `.h` 放在 Go 檔同一個目錄，是 cgo 的要求。
 - macOS 的 session 啟動時會套用 preset，可能讓相機停在自己的預設格式（這台是 1920x1080），而 `AVCaptureSessionPresetInputPriority` 在 macOS 不存在。所以改成 `startRunning` 之後用 `activeFormat` 選剛好 1280x720、支援目標幀率的格式；切換前可能還有幾張舊尺寸的畫面，程式會丟掉。找不到符合的格式就退回最接近的 preset。
-- 相機輸出原生 YUV（420v），錄影直接餵硬體編碼器；只有預覽和截圖才用 vImage 轉成 RGBA。
+- 相機輸出原生 YUV（420v），錄影直接餵硬體編碼器；只有預覽和截圖才用 vImage 轉成 RGBA。GPU 疊加（`avf_preview_overlay_show`）則是把 `AVCaptureVideoPreviewLayer` 直接疊在 Fyne 視窗的原生 `contentView` 上，畫面由 WindowServer 直接從 GPU 合成，連 vImage 轉換都不用，我們的程式碼完全不碰像素（`ui/camera.go`：疊加層一顯示，就不再餵縮圖 `fnFrame`）。
 - 截圖等 10 張畫面之後才拍，因為剛開相機時自動曝光還沒穩，畫面偏暗。
 - 第一次會跳出攝影機權限對話框，權限歸給啟動這個程式的終端機（跟 ffmpeg 時一樣）。
 

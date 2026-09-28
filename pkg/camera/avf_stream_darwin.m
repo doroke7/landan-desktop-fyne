@@ -2,6 +2,7 @@
 
 #import <AVFoundation/AVFoundation.h>
 #import <Accelerate/Accelerate.h>
+#import <AppKit/AppKit.h>
 #import <CoreMedia/CoreMedia.h>
 #import <CoreVideo/CoreVideo.h>
 #include <stdlib.h>
@@ -20,6 +21,9 @@ static const int kSnapshotWarmupFrames = 10;
 @property(nonatomic, strong) AVCaptureSession *session;
 @property(nonatomic, strong) dispatch_queue_t queue;
 @property(nonatomic, strong) id errorObserver;
+
+// native, zero-copy preview overlay (see avf_preview_overlay_show)
+@property(nonatomic, strong) NSView *previewOverlayView;
 
 // recording (created when the first frame arrives, so it uses the real frame size)
 @property(nonatomic, copy) NSString *recordPath;
@@ -443,5 +447,56 @@ void avf_stream_stop(void *pStream) {
         dispatch_sync(oStream.queue, ^{
         });
         [oStream finish];
+
+        [oStream.previewOverlayView removeFromSuperview];
+        oStream.previewOverlayView = nil;
+    }
+}
+
+void avf_preview_overlay_show(void *pStream, double dX, double dY, double dWidth, double dHeight) {
+    @autoreleasepool {
+        // __bridge: pStream is still owned by the caller (between avf_stream_start/avf_stream_stop),
+        // this does not retain or release it.
+        CameraStream *oStream = (__bridge CameraStream *)pStream;
+
+        NSWindow *oWindow = NSApp.keyWindow ?: NSApp.mainWindow ?: NSApp.windows.firstObject;
+        NSView *oHostView = oWindow.contentView;
+        if (oHostView == nil) {
+            return;
+        }
+
+        // Fyne's canvas is top-left origin; AppKit views are bottom-left origin by default.
+        CGFloat iHostHeight = oHostView.bounds.size.height;
+        NSRect oFrame = NSMakeRect(dX, iHostHeight - dY - dHeight, dWidth, dHeight);
+
+        if (oStream.previewOverlayView != nil) {
+            oStream.previewOverlayView.frame = oFrame;
+            if (oStream.previewOverlayView.superview != oHostView) {
+                [oStream.previewOverlayView removeFromSuperview];
+                [oHostView addSubview:oStream.previewOverlayView positioned:NSWindowAbove relativeTo:nil];
+            }
+            return;
+        }
+
+        // AVCaptureVideoPreviewLayer is composited by the window server straight off the GPU
+        // surface AVFoundation already writes to - no CPU pixel copy, unlike the RGBA preview
+        // sent through goCameraFrame/sendPreview.
+        AVCaptureVideoPreviewLayer *oLayer = [AVCaptureVideoPreviewLayer layerWithSession:oStream.session];
+
+        NSView *oOverlay = [[NSView alloc] initWithFrame:oFrame];
+        oOverlay.wantsLayer = YES;
+        oOverlay.layer = oLayer;
+        // Keeps roughly the right place if the window is resized before we reposition it ourselves.
+        oOverlay.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+
+        [oHostView addSubview:oOverlay positioned:NSWindowAbove relativeTo:nil];
+        oStream.previewOverlayView = oOverlay;
+    }
+}
+
+void avf_preview_overlay_hide(void *pStream) {
+    @autoreleasepool {
+        CameraStream *oStream = (__bridge CameraStream *)pStream;
+        [oStream.previewOverlayView removeFromSuperview];
     }
 }

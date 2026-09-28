@@ -26,7 +26,7 @@ var Command = &cobra.Command{
 		oApp.Lifecycle().SetOnStopped(ui.ShutdownCamera)
 		oWindow := oApp.NewWindow("Hello Fyne")
 		oWindow.SetMainMenu(ui.NewMainMenu(oWindow))
-		oWindow.SetContent(ui.NewContent())
+		oWindow.SetContent(ui.NewContent(oWindow))
 		oWindow.Resize(fyne.NewSize(float32(bootstrap.CONFIG.DESKTOP.WIDTH), float32(bootstrap.CONFIG.DESKTOP.HEIGHT)))
 		oWindow.ShowAndRun()
 		return nil

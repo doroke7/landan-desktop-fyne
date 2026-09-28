@@ -20,12 +20,15 @@ import (
 )
 
 type cameraView struct {
+	window fyne.Window
+	video  *fyne.Container // the area the native preview overlay is laid over
 	image  *canvas.Image
 	status *widget.Label
 
-	mutex  sync.Mutex
-	cancel context.CancelFunc
-	done   chan struct{}
+	mutex         sync.Mutex
+	cancel        context.CancelFunc
+	done          chan struct{}
+	bOverlayShown atomic.Bool
 }
 
 var (
@@ -34,9 +37,10 @@ var (
 )
 
 // NewCameraView builds the video area shown at the bottom of the main window.
-func NewCameraView() *fyne.Container {
+func NewCameraView(oWindow fyne.Window) *fyne.Container {
 
 	oCamera = &cameraView{
+		window: oWindow,
 		image:  canvas.NewImageFromImage(nil),
 		status: widget.NewLabel(""),
 	}
@@ -44,9 +48,48 @@ func NewCameraView() *fyne.Container {
 	oCamera.image.ScaleMode = canvas.ImageScaleFastest
 	oCamera.image.SetMinSize(fyne.NewSize(320, 180))
 
-	oVideo := container.NewStack(canvas.NewRectangle(color.Black), oCamera.image)
+	oCamera.video = container.New(&overlayLayout{view: oCamera}, canvas.NewRectangle(color.Black), oCamera.image)
 
-	return container.NewBorder(nil, oCamera.status, nil, nil, oVideo)
+	return container.NewBorder(nil, oCamera.status, nil, nil, oCamera.video)
+}
+
+// showPreviewOverlay lays the native, GPU-composited preview directly over the video area, in
+// place of the small RGBA thumbnail (oCamera.image) - see pkg/camera.ShowPreviewOverlay.
+// Must run on the main thread (e.g. from inside fyne.Do).
+func (v *cameraView) showPreviewOverlay() {
+	oPos := v.video.Position()
+	oSize := v.video.Size()
+	pkgCamera.ShowPreviewOverlay(oPos.X, oPos.Y, oSize.Width, oSize.Height)
+}
+
+// overlayLayout stacks its children to fill the available space, exactly like
+// layout.NewStackLayout(), but additionally keeps the native camera preview overlay (if currently
+// shown) aligned with that area - Fyne calls Layout whenever the window (and so this container) is
+// resized, which native subviews outside Fyne's own tree do not otherwise learn about.
+type overlayLayout struct {
+	view *cameraView
+}
+
+func (l *overlayLayout) Layout(aObjects []fyne.CanvasObject, oSize fyne.Size) {
+	oTopLeft := fyne.NewPos(0, 0)
+	for _, oChild := range aObjects {
+		oChild.Resize(oSize)
+		oChild.Move(oTopLeft)
+	}
+	if l.view.bOverlayShown.Load() {
+		l.view.showPreviewOverlay()
+	}
+}
+
+func (l *overlayLayout) MinSize(aObjects []fyne.CanvasObject) fyne.Size {
+	var fWidth, fHeight float32
+	for _, oChild := range aObjects {
+		if oChild.Visible() {
+			fWidth = max(fWidth, oChild.MinSize().Width)
+			fHeight = max(fHeight, oChild.MinSize().Height)
+		}
+	}
+	return fyne.NewSize(fWidth, fHeight)
 }
 
 // SetCameraStateHandler registers a callback that is told when the camera turns on or off.
@@ -117,6 +160,7 @@ func (v *cameraView) start() {
 	v.cancel = fnCancel
 	v.done = chDone
 	v.mutex.Unlock()
+	v.bOverlayShown.Store(false)
 
 	v.status.SetText("● 錄影中 00:00  " + sPath)
 	if fnOnCameraState != nil {
@@ -131,6 +175,12 @@ func (v *cameraView) start() {
 		// Never block on the UI thread (it may be waiting for us in ShutdownCamera):
 		// if the previous frame has not been drawn yet, drop this one.
 		var bPending atomic.Bool
+
+		// Shows the native, GPU-composited preview overlay (see cameraView.showPreviewOverlay) the
+		// first time a frame arrives, i.e. once the session is actually running, then stops feeding
+		// the small RGBA thumbnail below - the overlay sits directly on top of it and does not need
+		// a per-frame CPU pixel copy the way the thumbnail does.
+		var oShowOverlayOnce sync.Once
 
 		oOptions := pkgCamera.Options{
 			Device:           bootstrap.CONFIG.CAMERA.DEVICE,
@@ -147,15 +197,22 @@ func (v *cameraView) start() {
 		}
 
 		err := pkgCamera.Stream(oCtx, oOptions, func(oFrame image.Image) {
-			if oCtx.Err() != nil || !bPending.CompareAndSwap(false, true) {
+			if oCtx.Err() != nil || v.bOverlayShown.Load() || !bPending.CompareAndSwap(false, true) {
 				return
 			}
 			fyne.Do(func() {
 				v.image.Image = oFrame
 				v.image.Refresh()
 				bPending.Store(false)
+				oShowOverlayOnce.Do(func() {
+					v.showPreviewOverlay()
+					v.bOverlayShown.Store(true)
+				})
 			})
 		})
+
+		v.bOverlayShown.Store(false)
+		fyne.Do(pkgCamera.HidePreviewOverlay)
 
 		v.mutex.Lock()
 		v.cancel = nil

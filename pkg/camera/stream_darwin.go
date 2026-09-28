@@ -4,7 +4,7 @@ package camera
 
 /*
 #cgo CFLAGS: -fobjc-arc
-#cgo LDFLAGS: -framework AVFoundation -framework Accelerate -framework CoreMedia -framework CoreVideo -framework Foundation
+#cgo LDFLAGS: -framework AVFoundation -framework Accelerate -framework AppKit -framework CoreMedia -framework CoreVideo -framework Foundation
 #include <stdlib.h>
 #include "avf_stream_darwin.h"
 */
@@ -21,9 +21,45 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/cgo"
+	"sync"
 	"time"
 	"unsafe"
 )
+
+// currentStream is the native handle of the running stream, if any, so ShowPreviewOverlay and
+// HidePreviewOverlay can reach it. Only one stream runs at a time in this app.
+var (
+	currentStreamMutex sync.Mutex
+	currentStream       unsafe.Pointer
+)
+
+// ShowPreviewOverlay lays the camera feed directly over the app's window content, at (fX, fY,
+// fWidth, fHeight) in the window's own top-left-origin point space (i.e. the same units and
+// coordinate system as fyne.CanvasObject.Position()/Size()). It is composited by the GPU/window
+// server straight off the capture session - no per-frame CPU pixel copy. Safe to call again (e.g.
+// on resize) to reposition it. It is a no-op if no stream is running. Must be called on the main
+// thread (e.g. from inside fyne.Do).
+func ShowPreviewOverlay(fX, fY, fWidth, fHeight float32) {
+	currentStreamMutex.Lock()
+	pStream := currentStream
+	currentStreamMutex.Unlock()
+
+	if pStream != nil {
+		C.avf_preview_overlay_show(pStream, C.double(fX), C.double(fY), C.double(fWidth), C.double(fHeight))
+	}
+}
+
+// HidePreviewOverlay removes the overlay shown by ShowPreviewOverlay, if any.
+// Must be called on the main thread.
+func HidePreviewOverlay() {
+	currentStreamMutex.Lock()
+	pStream := currentStream
+	currentStreamMutex.Unlock()
+
+	if pStream != nil {
+		C.avf_preview_overlay_hide(pStream)
+	}
+}
 
 // cameraStream is what the AVFoundation callbacks reach through a cgo.Handle.
 type cameraStream struct {
@@ -127,11 +163,19 @@ func Stream(oCtx context.Context, oOptions Options, fnFrame func(image.Image)) e
 		return fmt.Errorf("無法讀取攝影機: %s", sMessage)
 	}
 
+	currentStreamMutex.Lock()
+	currentStream = pStream
+	currentStreamMutex.Unlock()
+
 	var errCamera error
 	select {
 	case <-oCtx.Done():
 	case errCamera = <-oStream.failed:
 	}
+
+	currentStreamMutex.Lock()
+	currentStream = nil
+	currentStreamMutex.Unlock()
 
 	// Waits until the mp4 is finalized; no callback runs after this.
 	C.avf_stream_stop(pStream)

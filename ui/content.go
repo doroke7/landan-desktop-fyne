@@ -1,23 +1,8 @@
 package ui
 
-import (
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/widget"
-)
+import "fyne.io/fyne/v2"
 
-func NewContent() *fyne.Container {
+func NewContent(oWindow fyne.Window) *fyne.Container {
 
-	oNameEntry := widget.NewEntry()
-	oNameEntry.SetPlaceHolder("輸入你的名字")
-
-	oGreetingLabel := widget.NewLabel("")
-
-	oButton := widget.NewButton("打招呼", func() {
-		oGreetingLabel.SetText("你好," + oNameEntry.Text + "!")
-	})
-
-	oForm := container.NewVBox(oNameEntry, oButton, oGreetingLabel)
-
-	return container.NewBorder(oForm, nil, nil, nil, NewCameraView())
+	return NewCameraView(oWindow)
 }

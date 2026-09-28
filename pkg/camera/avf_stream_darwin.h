@@ -30,4 +30,18 @@ void *avf_stream_start(const char *cDevice, int iWidth, int iHeight, int iFps, i
 // No callback runs after it returns.
 void avf_stream_stop(void *pStream);
 
+// avf_preview_overlay_show shows the camera feed via AVCaptureVideoPreviewLayer, laid directly over
+// the app's key window's content view at (dX, dY, dWidth, dHeight) - in the same top-left-origin,
+// DPI-independent point space Fyne itself uses (the flip to AppKit's bottom-left origin happens
+// inside). It is composited by the GPU/window server straight off the session - no per-frame CPU
+// pixel copy, unlike the RGBA preview sent through goCameraFrame. Safe to call again to reposition
+// (e.g. on window resize).
+// Must be called on the main thread. pStream must still be running (between avf_stream_start and
+// avf_stream_stop).
+void avf_preview_overlay_show(void *pStream, double dX, double dY, double dWidth, double dHeight);
+
+// avf_preview_overlay_hide removes the overlay shown by avf_preview_overlay_show, if any.
+// Must be called on the main thread.
+void avf_preview_overlay_hide(void *pStream);
+
 #endif
