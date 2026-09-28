@@ -29,6 +29,20 @@ type cameraView struct {
 	cancel        context.CancelFunc
 	done          chan struct{}
 	bOverlayShown atomic.Bool
+
+	// sLastStatus is only touched on the Fyne UI goroutine (every caller runs there, either
+	// directly from a menu/tray callback or via fyne.Do) - see setStatus.
+	sLastStatus string
+}
+
+// setStatus updates the status label, skipping the redraw when the text has not actually
+// changed (e.g. repeated errors, or callers that recompute the same string).
+func (v *cameraView) setStatus(sText string) {
+	if sText == v.sLastStatus {
+		return
+	}
+	v.sLastStatus = sText
+	v.status.SetText(sText)
 }
 
 var (
@@ -140,7 +154,7 @@ func (v *cameraView) start() {
 
 	sPath, err := helper.NewRecordingPath(bootstrap.CONFIG.CAMERA.RECORD_DIRECTORY)
 	if err != nil {
-		v.status.SetText("錯誤: " + err.Error())
+		v.setStatus("錯誤: " + err.Error())
 		return
 	}
 
@@ -148,7 +162,7 @@ func (v *cameraView) start() {
 	if bootstrap.CONFIG.CAMERA.SNAPSHOT_INTERVAL > 0 {
 		sSnapshotDir, err = helper.NewSnapshotDir(bootstrap.CONFIG.CAMERA.SNAPSHOT_DIRECTORY)
 		if err != nil {
-			v.status.SetText("錯誤: " + err.Error())
+			v.setStatus("錯誤: " + err.Error())
 			return
 		}
 	}
@@ -162,7 +176,7 @@ func (v *cameraView) start() {
 	v.mutex.Unlock()
 	v.bOverlayShown.Store(false)
 
-	v.status.SetText("● 錄影中 00:00  " + sPath)
+	v.setStatus("● 錄影中 00:00  " + sPath)
 	if fnOnCameraState != nil {
 		fnOnCameraState(true)
 	}
@@ -222,9 +236,9 @@ func (v *cameraView) start() {
 			v.image.Image = nil
 			v.image.Refresh()
 			if err != nil {
-				v.status.SetText("錯誤: " + err.Error())
+				v.setStatus("錯誤: " + err.Error())
 			} else {
-				v.status.SetText("已儲存: " + sPath)
+				v.setStatus("已儲存: " + sPath)
 			}
 			if fnOnCameraState != nil {
 				fnOnCameraState(false)
@@ -259,7 +273,7 @@ func (v *cameraView) tickStatus(oCtx context.Context, sPath string) {
 			sText := fmt.Sprintf("● 錄影中 %02d:%02d  %s", nSec/60, nSec%60, sPath)
 			fyne.Do(func() {
 				if oCtx.Err() == nil {
-					v.status.SetText(sText)
+					v.setStatus(sText)
 				}
 			})
 		}
