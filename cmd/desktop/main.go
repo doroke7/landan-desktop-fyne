@@ -11,6 +11,7 @@ import (
 	"landan-desktop-fyne/asset/icon"
 	"landan-desktop-fyne/bootstrap"
 	"landan-desktop-fyne/cmd/desktop/compose"
+	"landan-desktop-fyne/pkg/reopen"
 	"landan-desktop-fyne/ui"
 )
 
@@ -30,7 +31,14 @@ var Command = &cobra.Command{
 		oWindow := oApp.NewWindow("Hello Fyne")
 		oWindow.SetIcon(oIcon)
 		ui.SetupTray(oApp, oWindow)
-		oApp.Lifecycle().SetOnStarted(func() { ui.InstallReopen(oWindow) })
+		oApp.Lifecycle().SetOnStarted(func() {
+			reopen.Install(func() {
+				fyne.Do(func() {
+					oWindow.Show()
+					oWindow.RequestFocus()
+				})
+			})
+		})
 		oWindow.SetMainMenu(ui.NewMainMenu(oWindow))
 		oWindow.SetContent(ui.NewContent(oWindow))
 		oWindow.Resize(fyne.NewSize(float32(bootstrap.CONFIG.DESKTOP.WIDTH), float32(bootstrap.CONFIG.DESKTOP.HEIGHT)))

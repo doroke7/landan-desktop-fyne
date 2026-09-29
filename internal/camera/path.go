@@ -1,5 +1,6 @@
-// Package helper holds small OS-side helpers of the desktop app: where recordings and snapshots are stored.
-package helper
+// Package camera is the logic of the desktop camera: it decides where recordings go, drives pkg/camera
+// and reports progress to whoever shows it (ui). It knows nothing about Fyne.
+package camera
 
 import (
 	"os"
