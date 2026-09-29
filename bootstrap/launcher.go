@@ -21,6 +21,9 @@ var sLauncherDir = filepath.Join("runtime", "desktop") // 副程序的 pid 檔�
 func launcherPidPath() string { return filepath.Join(sLauncherDir, "desktop.pid") }
 func launcherLogPath() string { return filepath.Join(sLauncherDir, "desktop.log") }
 
+// supervisor 自己的 pid 檔,down 靠它先停 supervisor(否則副程序被殺後會被重啟)。
+func supervisorPidPath() string { return filepath.Join(sLauncherDir, "supervisor.pid") }
+
 // SuperviseLauncher runs this executable again with args as a background process (nohup), keeps its pid in a file,
 // and runs it again whenever that pid is gone, until this process gets SIGTERM or Ctrl-C.
 func SuperviseLauncher(args ...string) error {
@@ -32,6 +35,11 @@ func SuperviseLauncher(args ...string) error {
 	if err := os.MkdirAll(sLauncherDir, 0o755); err != nil {
 		return err
 	}
+
+	if err := os.WriteFile(supervisorPidPath(), []byte(strconv.Itoa(os.Getpid())), 0o644); err != nil {
+		return err
+	}
+	defer os.Remove(supervisorPidPath())
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGTERM, os.Interrupt)
@@ -126,4 +134,53 @@ func stopLauncher(nPid int, sExe string) {
 		_ = syscall.Kill(nPid, syscall.SIGKILL)
 	}
 	os.Remove(launcherPidPath())
+}
+
+// StopSupervisedLauncher stops what SuperviseLauncher started: it sends SIGTERM to the supervisor (which stops
+// the background window by its pid and removes its pid files) and waits for it to exit. Without a running
+// supervisor it falls back to stopping a leftover background window directly. It returns false if nothing was running.
+func StopSupervisedLauncher() (bool, error) {
+
+	sExe, err := os.Executable()
+	if err != nil {
+		return false, err
+	}
+
+	bStopped := false
+	if nPid, ok := readPidFile(supervisorPidPath()); ok && runningSupervisor(nPid) {
+		_ = syscall.Kill(nPid, syscall.SIGTERM)
+		// supervisor 收到訊號後還要停副程序(最多 5 秒),多等一點。
+		for i := 0; i < 100 && runningSupervisor(nPid); i++ {
+			time.Sleep(100 * time.Millisecond)
+		}
+		if runningSupervisor(nPid) {
+			_ = syscall.Kill(nPid, syscall.SIGKILL)
+		}
+		bStopped = true
+	}
+	os.Remove(supervisorPidPath())
+
+	// supervisor 已經不在(或被 SIGKILL)時,副程序可能還活著。
+	if nPid, ok := readLauncherPid(); ok && runningLauncher(nPid, sExe) {
+		stopLauncher(nPid, sExe)
+		bStopped = true
+	}
+	return bStopped, nil
+}
+
+func readPidFile(sPath string) (int, bool) {
+	aData, err := os.ReadFile(sPath)
+	if err != nil {
+		return 0, false
+	}
+	nPid, err := strconv.Atoi(strings.TrimSpace(string(aData)))
+	return nPid, err == nil && nPid > 0
+}
+
+// runningSupervisor is true if nPid is alive AND is a `compose ... up --supervisor` process. The command line is
+// matched by flags, not by executable path, because main.sh starts it through a relative path.
+func runningSupervisor(nPid int) bool {
+	aOutput, err := exec.Command("ps", "-p", strconv.Itoa(nPid), "-o", "command=").Output()
+	sCmd := string(aOutput)
+	return err == nil && strings.Contains(sCmd, "compose") && strings.Contains(sCmd, "--supervisor")
 }

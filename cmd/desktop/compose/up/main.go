@@ -16,6 +16,17 @@ var Command = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		bSupervisor, _ := cmd.Flags().GetBool("supervisor")
+		bLaunchd, _ := cmd.Flags().GetBool("launchd")
+
+		// --launchd:交給 macOS launchd 執行,結束(崩潰或關掉視窗)就自動重啟,立刻返回。
+		if bLaunchd {
+			if err := bootstrap.LaunchdUp("desktop"); err != nil {
+				helper.Error(args[0] + ": " + err.Error())
+				return err
+			}
+			helper.Info(args[0] + ": 已交給 launchd")
+			return nil
+		}
 
 		// --supervisor:背景執行,結束(崩潰或關掉視窗)就自動重啟,直到收到停止訊號。
 		if bSupervisor {
@@ -47,5 +58,6 @@ var Command = &cobra.Command{
 }
 
 func init() {
+	Command.Flags().Bool("launchd", false, "交給 macOS launchd 執行,結束(崩潰或關掉視窗)就自動重啟")
 	Command.Flags().Bool("supervisor", false, "背景執行,結束(崩潰或關掉視窗)就自動重啟")
 }

@@ -26,10 +26,11 @@ var Command = &cobra.Command{
 
 		oApp := app.New()
 		oApp.SetIcon(oIcon)
-		ui.SetupTray(oApp)
 		oApp.Lifecycle().SetOnStopped(ui.ShutdownCamera)
 		oWindow := oApp.NewWindow("Hello Fyne")
 		oWindow.SetIcon(oIcon)
+		ui.SetupTray(oApp, oWindow)
+		oApp.Lifecycle().SetOnStarted(func() { ui.InstallReopen(oWindow) })
 		oWindow.SetMainMenu(ui.NewMainMenu(oWindow))
 		oWindow.SetContent(ui.NewContent(oWindow))
 		oWindow.Resize(fyne.NewSize(float32(bootstrap.CONFIG.DESKTOP.WIDTH), float32(bootstrap.CONFIG.DESKTOP.HEIGHT)))
