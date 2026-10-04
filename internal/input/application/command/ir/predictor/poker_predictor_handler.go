@@ -24,14 +24,19 @@ func NewPokerPredictorHandler(oPokerPredictorUsecase usecasePortAnyIrPredictor.P
 // Handle 辨識 sWorkdir 目錄下（只讀第一層）所有圖片中的撲克牌；nLimit 大於 0 時只辨識前 nLimit 張。
 func (oSelf *PokerPredictorHandler) Handle(sWorkdir string, nLimit int, oWriter io.Writer) error {
 	oReport, err := oSelf.irPokerPredictorUsecase.Recognize(sWorkdir, nLimit, func(oResult domain.PokerPredictionResult) {
-		fmt.Fprintf(oWriter, "%s  pipeline %.1f ms\n", filepath.Base(oResult.Image), milliseconds(oResult.Elapsed))
+		fmt.Fprintf(oWriter, "%s  card %d  pipeline %.1f ms\n", filepath.Base(oResult.Image), len(oResult.Pokers), milliseconds(oResult.Elapsed))
 	})
 	if err != nil {
 		return err
 	}
 
 	fmt.Fprintln(oWriter, "========== 報告 ==========")
+	var nCards int
+	for _, oResult := range oReport.Results {
+		nCards += len(oResult.Pokers)
+	}
 	fmt.Fprintf(oWriter, "照片數量: %d\n", len(oReport.Results))
+	fmt.Fprintf(oWriter, "card 數量: %d\n", nCards)
 	fmt.Fprintf(oWriter, "總共時間: %.1f ms\n", float64(oReport.Elapsed.Microseconds())/1000)
 
 	return nil
