@@ -3,20 +3,21 @@ package container
 import (
 	"context"
 
-	internalCommand "landan-desktop-fyne/internal/command"
+	inputApplicationCommand "landan-desktop-fyne/internal/input/application/command"
+	usecaseApplicationCommand "landan-desktop-fyne/internal/usecase/application/command"
 )
 
 type CommandContainer struct {
-	DiePredictor *internalCommand.DiePredictorCommand
+	DiePredictor *inputApplicationCommand.DiePredictorHandler
 }
 
 func InitCommandContainer(oContext context.Context) (*CommandContainer, error) {
-	oDieUsecase, err := newDieUsecase(oContext)
+	oDiePipeline, err := newDiePipeline(oContext)
 	if err != nil {
 		return nil, err
 	}
 
 	return &CommandContainer{
-		DiePredictor: internalCommand.NewDiePredictorCommand(oDieUsecase),
+		DiePredictor: inputApplicationCommand.NewDiePredictorHandler(usecaseApplicationCommand.NewDiePredictorUsecase(oDiePipeline)),
 	}, nil
 }

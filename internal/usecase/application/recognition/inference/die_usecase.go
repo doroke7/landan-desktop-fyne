@@ -4,28 +4,22 @@ import (
 	"fmt"
 
 	domain "landan-desktop-fyne/internal/domain"
-	outputPortAnyClassifier "landan-desktop-fyne/internal/output/port/any/classifier"
-	outputPortAnyDetector "landan-desktop-fyne/internal/output/port/any/detector"
+	outputPortAnyPipeline "landan-desktop-fyne/internal/output/port/any/pipeline"
 	usecasePortRecognitionInference "landan-desktop-fyne/internal/usecase/port/recognition/inference"
 )
 
 type DieUsecase struct {
-	dieTopDetectorModel     outputPortAnyDetector.DieTopDetectorModel
-	dieValueClassifierModel outputPortAnyClassifier.DieValueClassifierModel
+	diePipeline outputPortAnyPipeline.DiePipeline
 }
 
-func NewDieUsecase(
-	oDieTopDetectorModel outputPortAnyDetector.DieTopDetectorModel,
-	oDieValueClassifierModel outputPortAnyClassifier.DieValueClassifierModel,
-) usecasePortRecognitionInference.DieUsecase {
+func NewDieUsecase(oDiePipeline outputPortAnyPipeline.DiePipeline) usecasePortRecognitionInference.DieUsecase {
 	return &DieUsecase{
-		dieTopDetectorModel:     oDieTopDetectorModel,
-		dieValueClassifierModel: oDieValueClassifierModel,
+		diePipeline: oDiePipeline,
 	}
 }
 
 func (oSelf *DieUsecase) Recognize(aImage []byte) ([]*domain.Die, error) {
-	aDies, err := oSelf.dieTopDetectorModel.Recognize(aImage)
+	aDies, err := oSelf.diePipeline.Recognize(aImage)
 	if err != nil {
 		return nil, fmt.Errorf("recognize dice: %w", err)
 	}

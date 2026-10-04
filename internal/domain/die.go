@@ -9,4 +9,6 @@ type Die struct {
 	Height int
 	// Confidence in [0, 1].
 	Confidence float32
+	// Value is the number facing up; nil until a classifier has read it.
+	Value *DieValue
 }

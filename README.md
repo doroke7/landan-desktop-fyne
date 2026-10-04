@@ -46,3 +46,36 @@ Python 做桌面程式的缺點。python 比較拿不到全部os 的性能
 | ffmpeg | `ffmpeg -f avfoundation`（nv12）→ 預覽 MJPEG + mp4 + 截圖，只算 ffmpeg 行程 | user 4.43s + sys 1.04s = 5.47s | 約 41~46% |
 | Objective-C | `pkg/camera`，只算測試行程 | BGRA 版 44.8%，改成 YUV 版 43.3% | 約 43~45% |
 | GPU 疊加* | `AVCaptureVideoPreviewLayer` 直接疊在原生視窗上，WindowServer 從 GPU 合成，不經過 RGBA 轉換或 `canvas.Image` | 3 次分別 13.2%／11.9%／17.0% | 約 12~17%（平均 ~14%） |
+
+
+## 命令用法
+
+執行檔是 `bin/main`（`make build` 產生），也可以用 `go run .` 代替。子命令有 `desktop`、`recognition`、`die-predictor`。
+
+### die-predictor
+
+辨識目錄下所有圖片中的骰子，印出每顆骰子的框、信心與耗時。圖片依序辨識，需要從專案根目錄執行（要讀 `config/onnx.yaml`）。
+
+```bash
+bin/main die-predictor --workdir <圖片目錄>
+# 或
+go run . die-predictor --workdir <圖片目錄>
+```
+
+| 參數 | 必填 | 說明 |
+| --- | --- | --- |
+| `--workdir` | 是 | 要辨識的圖片目錄，只讀第一層，支援 `.jpg` `.jpeg` `.png` `.bmp` `.webp`，依檔名排序 |
+
+輸出分三段：每張圖的執行時間、每張圖偵測到的骰子，最後是報告（照片數量與總共時間）。
+
+```
+a.jpg 執行時間 35.2 ms
+a.jpg：共偵測到 2 顆骰子
+  #1 die (0.93) box=(120,80,220,180)
+  #2 die (0.88) box=(300,90,395,185)
+========== 報告 ==========
+照片數量: 1
+總共時間: 35.4 ms
+```
+
+目錄不存在、底下沒有圖片，或任何一張辨識失敗，都會印出錯誤並以非 0 結束。
