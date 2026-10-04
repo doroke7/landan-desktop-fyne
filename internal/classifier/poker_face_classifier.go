@@ -5,7 +5,7 @@ import (
 
 	bootstrap "landan-desktop-fyne/bootstrap"
 	domain "landan-desktop-fyne/internal/domain"
-	outputApplicationOnnx "landan-desktop-fyne/internal/output/application/onnx"
+	outputApplicationInference "landan-desktop-fyne/internal/output/application/inference"
 )
 
 // 撲克牌的面，順序見 pk-studio-ir-model 的 cfg/classify/poker/card-data.yaml。
@@ -17,12 +17,12 @@ type PokerFaceClassifier struct {
 }
 
 // NewPokerFaceClassifier 從 config/onnx.yaml 的 classify.poker.card 讀模型路徑。
-func NewPokerFaceClassifier(oAbstractOnnx *outputApplicationOnnx.AbstractOnnx) (*PokerFaceClassifier, error) {
+func NewPokerFaceClassifier(oAbstractInference *outputApplicationInference.AbstractInference) (*PokerFaceClassifier, error) {
 	if bootstrap.CONFIG.ONNX.CLASSIFY.POKER.CARD.PATH == "" {
 		return nil, fmt.Errorf("onnx.classify.poker.card.path is empty (is config/onnx.yaml filled in? run from the project root)")
 	}
 
-	oAbstractClassifier, err := NewAbstractClassifier(oAbstractOnnx, bootstrap.CONFIG.ONNX.CLASSIFY.POKER.CARD.PATH, bootstrap.CONFIG.OPENVINO.CLASSIFY.POKER.CARD.PATH)
+	oAbstractClassifier, err := NewAbstractClassifier(oAbstractInference, bootstrap.CONFIG.ONNX.CLASSIFY.POKER.CARD.PATH, bootstrap.CONFIG.OPENVINO.CLASSIFY.POKER.CARD.PATH)
 	if err != nil {
 		return nil, err
 	}

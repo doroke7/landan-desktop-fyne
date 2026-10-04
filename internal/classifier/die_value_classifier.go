@@ -5,7 +5,7 @@ import (
 
 	bootstrap "landan-desktop-fyne/bootstrap"
 	domain "landan-desktop-fyne/internal/domain"
-	outputApplicationOnnx "landan-desktop-fyne/internal/output/application/onnx"
+	outputApplicationInference "landan-desktop-fyne/internal/output/application/inference"
 )
 
 // 骰子點數的類別數，順序是 1 ~ 6（見 pk-studio-ir-model 的 cfg/classify/die/value-data.yaml）。
@@ -18,12 +18,12 @@ type DieValueClassifier struct {
 }
 
 // NewDieValueClassifier 從 config/onnx.yaml 的 classify.die.value 讀模型路徑。
-func NewDieValueClassifier(oAbstractOnnx *outputApplicationOnnx.AbstractOnnx) (*DieValueClassifier, error) {
+func NewDieValueClassifier(oAbstractInference *outputApplicationInference.AbstractInference) (*DieValueClassifier, error) {
 	if bootstrap.CONFIG.ONNX.CLASSIFY.DIE.VALUE.PATH == "" {
 		return nil, fmt.Errorf("onnx.classify.die.value.path is empty (is config/onnx.yaml filled in? run from the project root)")
 	}
 
-	oAbstractClassifier, err := NewAbstractClassifier(oAbstractOnnx, bootstrap.CONFIG.ONNX.CLASSIFY.DIE.VALUE.PATH, bootstrap.CONFIG.OPENVINO.CLASSIFY.DIE.VALUE.PATH)
+	oAbstractClassifier, err := NewAbstractClassifier(oAbstractInference, bootstrap.CONFIG.ONNX.CLASSIFY.DIE.VALUE.PATH, bootstrap.CONFIG.OPENVINO.CLASSIFY.DIE.VALUE.PATH)
 	if err != nil {
 		return nil, err
 	}

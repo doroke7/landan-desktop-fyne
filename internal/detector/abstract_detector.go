@@ -9,8 +9,8 @@ import (
 
 	xdraw "golang.org/x/image/draw"
 
-	inference "landan-desktop-fyne/internal/inference"
-	outputApplicationOnnx "landan-desktop-fyne/internal/output/application/onnx"
+	outputApplicationInference "landan-desktop-fyne/internal/output/application/inference"
+	inference "landan-desktop-fyne/pkg/inference"
 )
 
 // Detection 是模型吐出的一個框，座標已換算回原圖的像素。
@@ -25,25 +25,25 @@ type Detection struct {
 //   - 輸入 [1, 3, H, W]，RGB，0~1
 //   - 輸出 [1, N, 6]，每列是 x1, y1, x2, y2, confidence, class（座標在輸入圖的像素上）
 type AbstractDetector struct {
-	*outputApplicationOnnx.AbstractOnnx
+	*outputApplicationInference.AbstractInference
 	model  inference.Model
 	width  int
 	height int
 }
 
-// NewAbstractDetector 載入模型：config 啟用 OpenVINO 時讀 sOpenvinoPath（.xml），否則讀 sPath（.onnx）。
-func NewAbstractDetector(oAbstractOnnx *outputApplicationOnnx.AbstractOnnx, sPath string, sOpenvinoPath string) (*AbstractDetector, error) {
-	oModel, err := oAbstractOnnx.LoadModel(sPath, sOpenvinoPath)
+// NewAbstractDetector 載入模型：inference engine 為 openvino 時讀 sOpenvinoPath（.xml），否則讀 sOnnxPath（.onnx）。
+func NewAbstractDetector(oAbstractInference *outputApplicationInference.AbstractInference, sOnnxPath string, sOpenvinoPath string) (*AbstractDetector, error) {
+	oModel, err := oAbstractInference.LoadModel(sOnnxPath, sOpenvinoPath)
 	if err != nil {
 		return nil, err
 	}
 	iHeight, iWidth := oModel.InputSize()
 
 	return &AbstractDetector{
-		AbstractOnnx: oAbstractOnnx,
-		model:        oModel,
-		width:        iWidth,
-		height:       iHeight,
+		AbstractInference: oAbstractInference,
+		model:             oModel,
+		width:             iWidth,
+		height:            iHeight,
 	}, nil
 }
 

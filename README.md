@@ -104,8 +104,8 @@ a.jpg：共偵測到 2 張撲克牌
 - 指令：`bin/main command poker-predictor --workdir <圖片目錄>`，圖片依序辨識
 - 4 個模型：`detect/poker/card/result-3`（偵測撲克牌）、`classify/poker/card/result-2`（正面／反面）、`classify/poker/rank/result-2`（點數）、`classify/poker/suit/result-2`（花色）
 - 「pipeline」耗時是單張圖從偵測到分類跑完的總時間，不含模型載入
-- **ONNX**：onnxruntime 1.30.0、provider `cpu`，讀 `best.onnx`（`config/openvino.yaml` 設 `enabled: false`）
-- **OpenVINO**：直接讀 `best_openvino_model/best.xml`，裝置 CPU（`config/openvino.yaml` 設 `enabled: true`）
+- **ONNX**：onnxruntime 1.30.0、provider `cpu`，讀 `best.onnx`（`config/inference.yaml` 設 `engine: "onnx"`）
+- **OpenVINO**：直接讀 `best_openvino_model/best.xml`，裝置 CPU（`config/inference.yaml` 設 `engine: "openvino"`）
 
 **結果（6 張截圖，單位 ms）**
 

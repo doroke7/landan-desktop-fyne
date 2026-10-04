@@ -10,33 +10,33 @@ import (
 
 	xdraw "golang.org/x/image/draw"
 
-	"landan-desktop-fyne/internal/inference"
-	outputApplicationOnnx "landan-desktop-fyne/internal/output/application/onnx"
+	outputApplicationInference "landan-desktop-fyne/internal/output/application/inference"
+	"landan-desktop-fyne/pkg/inference"
 )
 
 // AbstractClassifier 負責分類模型共用的 onnx 細節：載入 session、前處理、解析輸出。
 //   - 輸入 [1, 3, H, W]，RGB，0~1，等比例縮放後置中、其餘補黑（跟 python 的 ClassifierInference 一樣）
 //   - 輸出 [1, C]，各類別的機率
 type AbstractClassifier struct {
-	*outputApplicationOnnx.AbstractOnnx
+	*outputApplicationInference.AbstractInference
 	model  inference.Model
 	width  int
 	height int
 }
 
-// NewAbstractClassifier 載入模型：config 啟用 OpenVINO 時讀 sOpenvinoPath（.xml），否則讀 sPath（.onnx）。
-func NewAbstractClassifier(oAbstractOnnx *outputApplicationOnnx.AbstractOnnx, sPath string, sOpenvinoPath string) (*AbstractClassifier, error) {
-	oModel, err := oAbstractOnnx.LoadModel(sPath, sOpenvinoPath)
+// NewAbstractClassifier 載入模型：inference engine 為 openvino 時讀 sOpenvinoPath（.xml），否則讀 sOnnxPath（.onnx）。
+func NewAbstractClassifier(oAbstractInference *outputApplicationInference.AbstractInference, sOnnxPath string, sOpenvinoPath string) (*AbstractClassifier, error) {
+	oModel, err := oAbstractInference.LoadModel(sOnnxPath, sOpenvinoPath)
 	if err != nil {
 		return nil, err
 	}
 	iHeight, iWidth := oModel.InputSize()
 
 	return &AbstractClassifier{
-		AbstractOnnx: oAbstractOnnx,
-		model:        oModel,
-		width:        iWidth,
-		height:       iHeight,
+		AbstractInference: oAbstractInference,
+		model:             oModel,
+		width:             iWidth,
+		height:            iHeight,
 	}, nil
 }
 

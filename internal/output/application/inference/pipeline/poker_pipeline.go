@@ -1,4 +1,4 @@
-package outputApplicationOnnxPipeline
+package outputApplicationInferencePipeline
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	detector "landan-desktop-fyne/internal/detector"
 	domain "landan-desktop-fyne/internal/domain"
 	outputPortAnyPipeline "landan-desktop-fyne/internal/output/port/any/pipeline"
+	pkgUtility "landan-desktop-fyne/pkg/utility"
 )
 
 // pokerFaceFront 是 PokerFaceClassifier 認為牌面朝上時回的名稱。
@@ -59,7 +60,7 @@ func (oSelf *PokerPipeline) Recognize(aImage []byte) (*domain.PokerRecognition, 
 	for iPoker, oPoker := range aPokers {
 		tPokerStarted := time.Now()
 
-		aCrop, err := crop(oSource, oPoker.X, oPoker.Y, oPoker.Width, oPoker.Height)
+		aCrop, err := pkgUtility.Crop(oSource, oPoker.X, oPoker.Y, oPoker.Width, oPoker.Height)
 		if err != nil {
 			return nil, fmt.Errorf("crop poker #%d: %w", iPoker+1, err)
 		}

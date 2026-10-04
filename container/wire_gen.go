@@ -13,8 +13,8 @@ import (
 	"landan-desktop-fyne/internal/detector"
 	"landan-desktop-fyne/internal/input/application/command/ir/predictor"
 	"landan-desktop-fyne/internal/input/application/recognition/ir/inference"
-	"landan-desktop-fyne/internal/output/application/onnx"
-	"landan-desktop-fyne/internal/output/application/onnx/pipeline"
+	"landan-desktop-fyne/internal/output/application/inference"
+	"landan-desktop-fyne/internal/output/application/inference/pipeline"
 	"landan-desktop-fyne/internal/usecase/application/any/ir/inference"
 	"landan-desktop-fyne/internal/usecase/application/any/ir/predictor"
 )
@@ -22,19 +22,19 @@ import (
 // Injectors from wire.go:
 
 func InitRecognitionContainer(ctx context.Context, config bootstrap.Config) (*RecognitionContainer, error) {
-	abstractOnnx, err := outputApplicationOnnx.NewAbstractOnnx(ctx, config)
+	abstractInference, err := outputApplicationInference.NewAbstractInference(ctx, config)
 	if err != nil {
 		return nil, err
 	}
-	dieTopDetector, err := detector.NewDieTopDetector(abstractOnnx)
+	dieTopDetector, err := detector.NewDieTopDetector(abstractInference)
 	if err != nil {
 		return nil, err
 	}
-	dieValueClassifier, err := classifier.NewDieValueClassifier(abstractOnnx)
+	dieValueClassifier, err := classifier.NewDieValueClassifier(abstractInference)
 	if err != nil {
 		return nil, err
 	}
-	diePipeline := outputApplicationOnnxPipeline.NewDiePipeline(dieTopDetector, dieValueClassifier)
+	diePipeline := outputApplicationInferencePipeline.NewDiePipeline(dieTopDetector, dieValueClassifier)
 	dieUsecase := usecaseApplicationAnyIrInference.NewDieUsecase(diePipeline)
 	dieHandler := inputApplicationRecognitionIrInference.NewDieHandler(dieUsecase)
 	pokerHandler := inputApplicationRecognitionIrInference.NewPokerHandler()
@@ -48,19 +48,19 @@ func InitRecognitionContainer(ctx context.Context, config bootstrap.Config) (*Re
 }
 
 func InitDiePredictorCommandContainer(ctx context.Context, config bootstrap.Config) (*DiePredictorCommandContainer, error) {
-	abstractOnnx, err := outputApplicationOnnx.NewAbstractOnnx(ctx, config)
+	abstractInference, err := outputApplicationInference.NewAbstractInference(ctx, config)
 	if err != nil {
 		return nil, err
 	}
-	dieTopDetector, err := detector.NewDieTopDetector(abstractOnnx)
+	dieTopDetector, err := detector.NewDieTopDetector(abstractInference)
 	if err != nil {
 		return nil, err
 	}
-	dieValueClassifier, err := classifier.NewDieValueClassifier(abstractOnnx)
+	dieValueClassifier, err := classifier.NewDieValueClassifier(abstractInference)
 	if err != nil {
 		return nil, err
 	}
-	diePipeline := outputApplicationOnnxPipeline.NewDiePipeline(dieTopDetector, dieValueClassifier)
+	diePipeline := outputApplicationInferencePipeline.NewDiePipeline(dieTopDetector, dieValueClassifier)
 	diePredictorUsecase := usecaseApplicationAnyIrPredictor.NewDiePredictorUsecase(diePipeline)
 	diePredictorHandler := inputApplicationCommandIrPredictor.NewDiePredictorHandler(diePredictorUsecase)
 	diePredictorCommandContainer := &DiePredictorCommandContainer{
@@ -70,27 +70,27 @@ func InitDiePredictorCommandContainer(ctx context.Context, config bootstrap.Conf
 }
 
 func InitPokerPredictorCommandContainer(ctx context.Context, config bootstrap.Config) (*PokerPredictorCommandContainer, error) {
-	abstractOnnx, err := outputApplicationOnnx.NewAbstractOnnx(ctx, config)
+	abstractInference, err := outputApplicationInference.NewAbstractInference(ctx, config)
 	if err != nil {
 		return nil, err
 	}
-	pokerCardDetector, err := detector.NewPokerCardDetector(abstractOnnx)
+	pokerCardDetector, err := detector.NewPokerCardDetector(abstractInference)
 	if err != nil {
 		return nil, err
 	}
-	pokerFaceClassifier, err := classifier.NewPokerFaceClassifier(abstractOnnx)
+	pokerFaceClassifier, err := classifier.NewPokerFaceClassifier(abstractInference)
 	if err != nil {
 		return nil, err
 	}
-	pokerRankClassifier, err := classifier.NewPokerRankClassifier(abstractOnnx)
+	pokerRankClassifier, err := classifier.NewPokerRankClassifier(abstractInference)
 	if err != nil {
 		return nil, err
 	}
-	pokerSuitClassifier, err := classifier.NewPokerSuitClassifier(abstractOnnx)
+	pokerSuitClassifier, err := classifier.NewPokerSuitClassifier(abstractInference)
 	if err != nil {
 		return nil, err
 	}
-	pokerPipeline := outputApplicationOnnxPipeline.NewPokerPipeline(pokerCardDetector, pokerFaceClassifier, pokerRankClassifier, pokerSuitClassifier)
+	pokerPipeline := outputApplicationInferencePipeline.NewPokerPipeline(pokerCardDetector, pokerFaceClassifier, pokerRankClassifier, pokerSuitClassifier)
 	pokerPredictorUsecase := usecaseApplicationAnyIrPredictor.NewPokerPredictorUsecase(pokerPipeline)
 	pokerPredictorHandler := inputApplicationCommandIrPredictor.NewPokerPredictorHandler(pokerPredictorUsecase)
 	pokerPredictorCommandContainer := &PokerPredictorCommandContainer{

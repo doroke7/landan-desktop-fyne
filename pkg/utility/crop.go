@@ -1,4 +1,4 @@
-package outputApplicationOnnxPipeline
+package pkgUtility
 
 import (
 	"bytes"
@@ -7,8 +7,8 @@ import (
 	"image/png"
 )
 
-// crop 把 (iX, iY, iWidth, iHeight) 的框（超出圖片的部分會裁掉）從 oSource 切出來，編成 PNG。
-func crop(oSource image.Image, iX int, iY int, iWidth int, iHeight int) ([]byte, error) {
+// Crop 把 (iX, iY, iWidth, iHeight) 的框（超出圖片的部分會裁掉）從 oSource 切出來，編成 PNG。
+func Crop(oSource image.Image, iX int, iY int, iWidth int, iHeight int) ([]byte, error) {
 	oBox := image.Rect(iX, iY, iX+iWidth, iY+iHeight).Intersect(oSource.Bounds())
 	if oBox.Empty() {
 		return nil, fmt.Errorf("box (%d,%d,%d,%d) is outside the image", iX, iY, iX+iWidth, iY+iHeight)

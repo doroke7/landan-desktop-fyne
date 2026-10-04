@@ -17,6 +17,9 @@ type Config struct {
 			PORT string `mapstructure:"port"`
 		} `mapstructure:"recognition"`
 	} `mapstructure:"services"`
+	INFERENCE struct {
+		ENGINE string `mapstructure:"engine"`
+	} `mapstructure:"inference"`
 	ONNX struct {
 		LIBRARY          string            `mapstructure:"library"`
 		PROVIDER         string            `mapstructure:"provider"`
@@ -63,9 +66,8 @@ type Config struct {
 		} `mapstructure:"classify"`
 	} `mapstructure:"onnx"`
 	OPENVINO struct {
-		ENABLED bool   `mapstructure:"enabled"`
-		DEVICE  string `mapstructure:"device"`
-		DETECT  struct {
+		DEVICE string `mapstructure:"device"`
+		DETECT struct {
 			DIE struct {
 				CUBE struct {
 					PATH string `mapstructure:"path"`

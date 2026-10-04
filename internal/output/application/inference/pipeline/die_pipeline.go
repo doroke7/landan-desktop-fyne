@@ -1,4 +1,4 @@
-package outputApplicationOnnxPipeline
+package outputApplicationInferencePipeline
 
 import (
 	"bytes"
@@ -11,6 +11,7 @@ import (
 	detector "landan-desktop-fyne/internal/detector"
 	domain "landan-desktop-fyne/internal/domain"
 	outputPortAnyPipeline "landan-desktop-fyne/internal/output/port/any/pipeline"
+	pkgUtility "landan-desktop-fyne/pkg/utility"
 )
 
 // DiePipeline 先用偵測模型找出每顆 die，再把每顆裁下來交給分類模型讀點數。
@@ -44,7 +45,7 @@ func (oSelf *DiePipeline) Recognize(aImage []byte) ([]*domain.Die, error) {
 	}
 
 	for iDie, oDie := range aDies {
-		aCrop, err := crop(oSource, oDie.X, oDie.Y, oDie.Width, oDie.Height)
+		aCrop, err := pkgUtility.Crop(oSource, oDie.X, oDie.Y, oDie.Width, oDie.Height)
 		if err != nil {
 			return nil, fmt.Errorf("crop die #%d: %w", iDie+1, err)
 		}

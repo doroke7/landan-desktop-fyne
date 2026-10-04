@@ -5,7 +5,7 @@ import (
 
 	bootstrap "landan-desktop-fyne/bootstrap"
 	domain "landan-desktop-fyne/internal/domain"
-	outputApplicationOnnx "landan-desktop-fyne/internal/output/application/onnx"
+	outputApplicationInference "landan-desktop-fyne/internal/output/application/inference"
 )
 
 // 撲克牌的花色，順序見 pk-studio-ir-model 的 cfg/classify/poker/suit-data.yaml。
@@ -17,12 +17,12 @@ type PokerSuitClassifier struct {
 }
 
 // NewPokerSuitClassifier 從 config/onnx.yaml 的 classify.poker.suit 讀模型路徑。
-func NewPokerSuitClassifier(oAbstractOnnx *outputApplicationOnnx.AbstractOnnx) (*PokerSuitClassifier, error) {
+func NewPokerSuitClassifier(oAbstractInference *outputApplicationInference.AbstractInference) (*PokerSuitClassifier, error) {
 	if bootstrap.CONFIG.ONNX.CLASSIFY.POKER.SUIT.PATH == "" {
 		return nil, fmt.Errorf("onnx.classify.poker.suit.path is empty (is config/onnx.yaml filled in? run from the project root)")
 	}
 
-	oAbstractClassifier, err := NewAbstractClassifier(oAbstractOnnx, bootstrap.CONFIG.ONNX.CLASSIFY.POKER.SUIT.PATH, bootstrap.CONFIG.OPENVINO.CLASSIFY.POKER.SUIT.PATH)
+	oAbstractClassifier, err := NewAbstractClassifier(oAbstractInference, bootstrap.CONFIG.ONNX.CLASSIFY.POKER.SUIT.PATH, bootstrap.CONFIG.OPENVINO.CLASSIFY.POKER.SUIT.PATH)
 	if err != nil {
 		return nil, err
 	}

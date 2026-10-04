@@ -6,7 +6,7 @@ import (
 
 	bootstrap "landan-desktop-fyne/bootstrap"
 	domain "landan-desktop-fyne/internal/domain"
-	outputApplicationOnnx "landan-desktop-fyne/internal/output/application/onnx"
+	outputApplicationInference "landan-desktop-fyne/internal/output/application/inference"
 )
 
 // PokerCardDetector 用 onnx 跑撲克牌的偵測模型（只有一個類別 Card），onnx 的細節都在 AbstractDetector。
@@ -15,12 +15,12 @@ type PokerCardDetector struct {
 }
 
 // NewPokerCardDetector 從 config/onnx.yaml 的 detect.poker.card 讀模型路徑與信心門檻。
-func NewPokerCardDetector(oAbstractOnnx *outputApplicationOnnx.AbstractOnnx) (*PokerCardDetector, error) {
+func NewPokerCardDetector(oAbstractInference *outputApplicationInference.AbstractInference) (*PokerCardDetector, error) {
 	if bootstrap.CONFIG.ONNX.DETECT.POKER.CARD.PATH == "" {
 		return nil, fmt.Errorf("onnx.detect.poker.card.path is empty (is config/onnx.yaml filled in? run from the project root)")
 	}
 
-	oAbstractDetector, err := NewAbstractDetector(oAbstractOnnx, bootstrap.CONFIG.ONNX.DETECT.POKER.CARD.PATH, bootstrap.CONFIG.OPENVINO.DETECT.POKER.CARD.PATH)
+	oAbstractDetector, err := NewAbstractDetector(oAbstractInference, bootstrap.CONFIG.ONNX.DETECT.POKER.CARD.PATH, bootstrap.CONFIG.OPENVINO.DETECT.POKER.CARD.PATH)
 	if err != nil {
 		return nil, err
 	}

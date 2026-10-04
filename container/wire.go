@@ -15,8 +15,8 @@ import (
 	inputApplicationCommandIrPredictor "landan-desktop-fyne/internal/input/application/command/ir/predictor"
 	inputApplicationRecognitionIrInference "landan-desktop-fyne/internal/input/application/recognition/ir/inference"
 
-	outputApplicationOnnx "landan-desktop-fyne/internal/output/application/onnx"
-	outputApplicationOnnxPipeline "landan-desktop-fyne/internal/output/application/onnx/pipeline"
+	outputApplicationInference "landan-desktop-fyne/internal/output/application/inference"
+	outputApplicationInferencePipeline "landan-desktop-fyne/internal/output/application/inference/pipeline"
 
 	usecaseApplicationAnyIrInference "landan-desktop-fyne/internal/usecase/application/any/ir/inference"
 	usecaseApplicationAnyIrPredictor "landan-desktop-fyne/internal/usecase/application/any/ir/predictor"
@@ -37,8 +37,8 @@ type RecognitionContainer struct {
 func InitRecognitionContainer(ctx context.Context, config bootstrap.Config) (*RecognitionContainer, error) {
 	wire.Build(
 
-		// onnx：onnxruntime 或 OpenVINO 由 config/openvino.yaml 的 enabled 決定
-		outputApplicationOnnx.NewAbstractOnnx,
+		// onnx：onnxruntime 或 OpenVINO 由 config/inference.yaml 的 engine 決定
+		outputApplicationInference.NewAbstractInference,
 
 		// detector
 		detector.NewDieTopDetector,
@@ -47,7 +47,7 @@ func InitRecognitionContainer(ctx context.Context, config bootstrap.Config) (*Re
 		classifier.NewDieValueClassifier,
 
 		// output
-		outputApplicationOnnxPipeline.NewDiePipeline,
+		outputApplicationInferencePipeline.NewDiePipeline,
 
 		// usecase
 		usecaseApplicationAnyIrInference.NewDieUsecase,
@@ -75,7 +75,7 @@ func InitDiePredictorCommandContainer(ctx context.Context, config bootstrap.Conf
 	wire.Build(
 
 		// onnx
-		outputApplicationOnnx.NewAbstractOnnx,
+		outputApplicationInference.NewAbstractInference,
 
 		// detector
 		detector.NewDieTopDetector,
@@ -84,7 +84,7 @@ func InitDiePredictorCommandContainer(ctx context.Context, config bootstrap.Conf
 		classifier.NewDieValueClassifier,
 
 		// output
-		outputApplicationOnnxPipeline.NewDiePipeline,
+		outputApplicationInferencePipeline.NewDiePipeline,
 
 		// usecase
 		usecaseApplicationAnyIrPredictor.NewDiePredictorUsecase,
@@ -110,7 +110,7 @@ func InitPokerPredictorCommandContainer(ctx context.Context, config bootstrap.Co
 	wire.Build(
 
 		// onnx
-		outputApplicationOnnx.NewAbstractOnnx,
+		outputApplicationInference.NewAbstractInference,
 
 		// detector
 		detector.NewPokerCardDetector,
@@ -121,7 +121,7 @@ func InitPokerPredictorCommandContainer(ctx context.Context, config bootstrap.Co
 		classifier.NewPokerSuitClassifier,
 
 		// output
-		outputApplicationOnnxPipeline.NewPokerPipeline,
+		outputApplicationInferencePipeline.NewPokerPipeline,
 
 		// usecase
 		usecaseApplicationAnyIrPredictor.NewPokerPredictorUsecase,
