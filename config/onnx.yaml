@@ -1,5 +1,5 @@
 # libonnxruntime 動態函式庫的路徑，留空就用系統預設位置。
-library: ""
+library: "/opt/homebrew/opt/onnxruntime/lib/libonnxruntime.dylib"
 
 # 每個模型：path 是 onnx 檔案，threshold 是信心低於它就丟掉（0 ~ 1）。
 detect:

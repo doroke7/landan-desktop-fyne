@@ -1,4 +1,4 @@
-package usecasePortCommand
+package usecasePortAnyIrPredictor
 
 import (
 	domain "landan-desktop-fyne/internal/domain"

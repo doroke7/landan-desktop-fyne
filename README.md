@@ -50,16 +50,16 @@ Python 做桌面程式的缺點。python 比較拿不到全部os 的性能
 
 ## 命令用法
 
-執行檔是 `bin/main`（`make build` 產生），也可以用 `go run .` 代替。子命令有 `desktop`、`recognition`、`die-predictor`。
+執行檔是 `bin/main`（`make build` 產生），也可以用 `go run .` 代替。子命令有 `desktop`、`recognition`、`command`（底下有 `die-predictor`、`poker-predictor`）。
 
-### die-predictor
+### command die-predictor
 
 辨識目錄下所有圖片中的骰子，印出每顆骰子的框、信心與耗時。圖片依序辨識，需要從專案根目錄執行（要讀 `config/onnx.yaml`）。
 
 ```bash
-bin/main die-predictor --workdir <圖片目錄>
+bin/main command die-predictor --workdir <圖片目錄>
 # 或
-go run . die-predictor --workdir <圖片目錄>
+go run . command die-predictor --workdir <圖片目錄>
 ```
 
 | 參數 | 必填 | 說明 |
@@ -79,3 +79,26 @@ a.jpg：共偵測到 2 顆骰子
 ```
 
 目錄不存在、底下沒有圖片，或任何一張辨識失敗，都會印出錯誤並以非 0 結束。
+
+### command poker-predictor
+
+辨識目錄下所有圖片中的撲克牌：先偵測每張牌，再判斷哪一面朝上（Front / Flow / Back）；只有 Front 的牌會再讀花色與點數。牌依框的中心 x 由左到右排列。其餘行為（圖片格式、依序辨識、失敗即停、需從專案根目錄執行）跟 `die-predictor` 相同。
+
+```bash
+bin/main command poker-predictor --workdir <圖片目錄>
+```
+
+```
+a.jpg：共偵測到 2 張撲克牌
+  #1 poker (0.98) box=(100,60,260,300) Front (1.00) Spade A (1.00, 0.99)
+  #2 poker (0.97) box=(300,60,460,300) Back (1.00)
+```
+
+上面的數字是示意，不是實際跑出來的結果。模型路徑與門檻在 `config/onnx.yaml` 的 `detect.poker.card`、`classify.poker.card`、`classify.poker.rank`、`classify.poker.suit`。
+
+
+## 安裝步驟
+# 1. 安裝 onnx 
+```
+brew install onnxruntime # MAC
+```

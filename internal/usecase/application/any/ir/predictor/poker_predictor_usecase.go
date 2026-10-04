@@ -11,19 +11,19 @@ import (
 	usecasePortAnyIrPredictor "landan-desktop-fyne/internal/usecase/port/any/ir/predictor"
 )
 
-type DiePredictorUsecase struct {
+type PokerPredictorUsecase struct {
 	*AbstractUsecase
-	diePipeline outputPortAnyPipeline.DiePipeline
+	pokerPipeline outputPortAnyPipeline.PokerPipeline
 }
 
-func NewDiePredictorUsecase(oDiePipeline outputPortAnyPipeline.DiePipeline) usecasePortAnyIrPredictor.DiePredictorUsecase {
-	return &DiePredictorUsecase{
+func NewPokerPredictorUsecase(oPokerPipeline outputPortAnyPipeline.PokerPipeline) usecasePortAnyIrPredictor.PokerPredictorUsecase {
+	return &PokerPredictorUsecase{
 		AbstractUsecase: NewAbstractUsecase(),
-		diePipeline:     oDiePipeline,
+		pokerPipeline:   oPokerPipeline,
 	}
 }
 
-func (oSelf *DiePredictorUsecase) Recognize(sWorkdir string) (*domain.DiePredictionReport, error) {
+func (oSelf *PokerPredictorUsecase) Recognize(sWorkdir string) (*domain.PokerPredictionReport, error) {
 	aImages, err := oSelf.ListImages(sWorkdir)
 	if err != nil {
 		return nil, err
@@ -31,7 +31,7 @@ func (oSelf *DiePredictorUsecase) Recognize(sWorkdir string) (*domain.DiePredict
 
 	tStarted := time.Now()
 
-	aResults := make([]domain.DiePredictionResult, 0, len(aImages))
+	aResults := make([]domain.PokerPredictionResult, 0, len(aImages))
 	for _, sImage := range aImages {
 		tImageStarted := time.Now()
 
@@ -40,15 +40,15 @@ func (oSelf *DiePredictorUsecase) Recognize(sWorkdir string) (*domain.DiePredict
 			return nil, fmt.Errorf("%s: 無法讀取圖片: %w", filepath.Base(sImage), err)
 		}
 
-		aDies, err := oSelf.diePipeline.Recognize(aImage)
+		aPokers, err := oSelf.pokerPipeline.Recognize(aImage)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", filepath.Base(sImage), err)
 		}
 
-		aResults = append(aResults, domain.DiePredictionResult{Image: sImage, Dies: aDies, Elapsed: time.Since(tImageStarted)})
+		aResults = append(aResults, domain.PokerPredictionResult{Image: sImage, Pokers: aPokers, Elapsed: time.Since(tImageStarted)})
 	}
 
 	tElapsed := time.Since(tStarted)
 
-	return &domain.DiePredictionReport{Results: aResults, Elapsed: tElapsed}, nil
+	return &domain.PokerPredictionReport{Results: aResults, Elapsed: tElapsed}, nil
 }

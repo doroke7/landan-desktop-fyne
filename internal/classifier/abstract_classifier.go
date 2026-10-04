@@ -118,3 +118,23 @@ func (oSelf *AbstractClassifier) toPlanes(oSource image.Image) []float32 {
 func (oSelf *AbstractClassifier) Close() error {
 	return oSelf.session.Destroy()
 }
+
+// Best 對圖跑一次模型，回傳機率最高的類別名稱與機率；aNames 的順序就是類別編號。
+func (oSelf *AbstractClassifier) Best(aImage []byte, aNames []string) (string, float32, error) {
+	aProbabilities, err := oSelf.Recognize(aImage)
+	if err != nil {
+		return "", 0, err
+	}
+	if len(aProbabilities) != len(aNames) {
+		return "", 0, fmt.Errorf("unsupported output size %d, want [1, %d]", len(aProbabilities), len(aNames))
+	}
+
+	iBest := 0
+	for iIndex, fProbability := range aProbabilities {
+		if fProbability > aProbabilities[iBest] {
+			iBest = iIndex
+		}
+	}
+
+	return aNames[iBest], aProbabilities[iBest], nil
+}

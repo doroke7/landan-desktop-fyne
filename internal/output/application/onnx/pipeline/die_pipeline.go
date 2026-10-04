@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"image"
 	_ "image/jpeg"
-	"image/png"
+	_ "image/png"
 
 	classifier "landan-desktop-fyne/internal/classifier"
 	detector "landan-desktop-fyne/internal/detector"
@@ -44,7 +44,7 @@ func (oSelf *DiePipeline) Recognize(aImage []byte) ([]*domain.Die, error) {
 	}
 
 	for iDie, oDie := range aDies {
-		aCrop, err := crop(oSource, oDie)
+		aCrop, err := crop(oSource, oDie.X, oDie.Y, oDie.Width, oDie.Height)
 		if err != nil {
 			return nil, fmt.Errorf("crop die #%d: %w", iDie+1, err)
 		}
@@ -56,26 +56,4 @@ func (oSelf *DiePipeline) Recognize(aImage []byte) ([]*domain.Die, error) {
 	}
 
 	return aDies, nil
-}
-
-// crop 把 oDie 的框（超出圖片的部分會裁掉）從 oSource 切出來，編成 PNG。
-func crop(oSource image.Image, oDie *domain.Die) ([]byte, error) {
-	oBox := image.Rect(oDie.X, oDie.Y, oDie.X+oDie.Width, oDie.Y+oDie.Height).Intersect(oSource.Bounds())
-	if oBox.Empty() {
-		return nil, fmt.Errorf("box (%d,%d,%d,%d) is outside the image", oDie.X, oDie.Y, oDie.X+oDie.Width, oDie.Y+oDie.Height)
-	}
-
-	oSubImager, ok := oSource.(interface {
-		SubImage(image.Rectangle) image.Image
-	})
-	if !ok {
-		return nil, fmt.Errorf("image type %T cannot be cropped", oSource)
-	}
-
-	var oBuffer bytes.Buffer
-	if err := png.Encode(&oBuffer, oSubImager.SubImage(oBox)); err != nil {
-		return nil, err
-	}
-
-	return oBuffer.Bytes(), nil
 }

@@ -1,4 +1,4 @@
-package usecasePortRecognitionInference
+package usecasePortAnyIrInference
 
 import (
 	domain "landan-desktop-fyne/internal/domain"

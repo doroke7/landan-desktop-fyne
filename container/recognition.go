@@ -7,18 +7,18 @@ import (
 	"landan-desktop-fyne/bootstrap"
 	"landan-desktop-fyne/internal/classifier"
 	"landan-desktop-fyne/internal/detector"
-	inputApplicationRecognitionInference "landan-desktop-fyne/internal/input/application/recognition/inference"
+	inputApplicationRecognitionIrInference "landan-desktop-fyne/internal/input/application/recognition/ir/inference"
 	outputApplicationOnnx "landan-desktop-fyne/internal/output/application/onnx"
 	outputApplicationOnnxPipeline "landan-desktop-fyne/internal/output/application/onnx/pipeline"
 	outputPortAnyPipeline "landan-desktop-fyne/internal/output/port/any/pipeline"
-	usecaseApplicationRecognitionInference "landan-desktop-fyne/internal/usecase/application/recognition/inference"
-	usecasePortRecognitionInference "landan-desktop-fyne/internal/usecase/port/recognition/inference"
+	usecaseApplicationAnyIrInference "landan-desktop-fyne/internal/usecase/application/any/ir/inference"
+	usecasePortAnyIrInference "landan-desktop-fyne/internal/usecase/port/any/ir/inference"
 )
 
 type RecognitionContainer struct {
-	RecognitionInferenceDie   *inputApplicationRecognitionInference.DieHandler
-	RecognitionInferencePoker *inputApplicationRecognitionInference.PokerHandler
-	RecognitionInferenceDisk  *inputApplicationRecognitionInference.DiskHandler
+	RecognitionInferenceDie   *inputApplicationRecognitionIrInference.DieHandler
+	RecognitionInferencePoker *inputApplicationRecognitionIrInference.PokerHandler
+	RecognitionInferenceDisk  *inputApplicationRecognitionIrInference.DiskHandler
 }
 
 func InitRecognitionContainer(oContext context.Context) (*RecognitionContainer, error) {
@@ -28,9 +28,9 @@ func InitRecognitionContainer(oContext context.Context) (*RecognitionContainer, 
 	}
 
 	return &RecognitionContainer{
-		RecognitionInferenceDie:   inputApplicationRecognitionInference.NewDieHandler(oDieUsecase),
-		RecognitionInferencePoker: inputApplicationRecognitionInference.NewPokerHandler(),
-		RecognitionInferenceDisk:  inputApplicationRecognitionInference.NewDiskHandler(),
+		RecognitionInferenceDie:   inputApplicationRecognitionIrInference.NewDieHandler(oDieUsecase),
+		RecognitionInferencePoker: inputApplicationRecognitionIrInference.NewPokerHandler(),
+		RecognitionInferenceDisk:  inputApplicationRecognitionIrInference.NewDiskHandler(),
 	}, nil
 }
 
@@ -48,13 +48,13 @@ func newDieTopDetector(oContext context.Context) (*outputApplicationOnnx.Abstrac
 	return oAbstractOnnx, oDieTopDetector, nil
 }
 
-func newDieUsecase(oContext context.Context) (usecasePortRecognitionInference.DieUsecase, error) {
+func newDieUsecase(oContext context.Context) (usecasePortAnyIrInference.DieUsecase, error) {
 	oDiePipeline, err := newDiePipeline(oContext)
 	if err != nil {
 		return nil, err
 	}
 
-	return usecaseApplicationRecognitionInference.NewDieUsecase(oDiePipeline), nil
+	return usecaseApplicationAnyIrInference.NewDieUsecase(oDiePipeline), nil
 }
 
 func newDiePipeline(oContext context.Context) (outputPortAnyPipeline.DiePipeline, error) {
@@ -69,4 +69,30 @@ func newDiePipeline(oContext context.Context) (outputPortAnyPipeline.DiePipeline
 	}
 
 	return outputApplicationOnnxPipeline.NewDiePipeline(oDieTopDetector, oDieValueClassifier), nil
+}
+
+func newPokerPipeline(oContext context.Context) (outputPortAnyPipeline.PokerPipeline, error) {
+	oAbstractOnnx, err := outputApplicationOnnx.NewAbstractOnnx(oContext, bootstrap.CONFIG.ONNX.LIBRARY)
+	if err != nil {
+		return nil, err
+	}
+
+	oPokerCardDetector, err := detector.NewPokerCardDetector(oAbstractOnnx)
+	if err != nil {
+		return nil, fmt.Errorf("init poker card detector: %w", err)
+	}
+	oPokerFaceClassifier, err := classifier.NewPokerFaceClassifier(oAbstractOnnx)
+	if err != nil {
+		return nil, fmt.Errorf("init poker face classifier: %w", err)
+	}
+	oPokerRankClassifier, err := classifier.NewPokerRankClassifier(oAbstractOnnx)
+	if err != nil {
+		return nil, fmt.Errorf("init poker rank classifier: %w", err)
+	}
+	oPokerSuitClassifier, err := classifier.NewPokerSuitClassifier(oAbstractOnnx)
+	if err != nil {
+		return nil, fmt.Errorf("init poker suit classifier: %w", err)
+	}
+
+	return outputApplicationOnnxPipeline.NewPokerPipeline(oPokerCardDetector, oPokerFaceClassifier, oPokerRankClassifier, oPokerSuitClassifier), nil
 }

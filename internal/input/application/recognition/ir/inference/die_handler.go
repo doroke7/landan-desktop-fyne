@@ -1,4 +1,4 @@
-package inputApplicationRecognitionInference
+package inputApplicationRecognitionIrInference
 
 import (
 	"context"
@@ -6,18 +6,18 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	usecasePortRecognitionInference "landan-desktop-fyne/internal/usecase/port/recognition/inference"
+	usecasePortAnyIrInference "landan-desktop-fyne/internal/usecase/port/any/ir/inference"
 	pbRecognitionTableInference "landan-desktop-fyne/pb/recognition/table/inference"
 )
 
 type DieHandler struct {
 	pbRecognitionTableInference.UnimplementedDieServiceServer
-	recognitionInferenceDieUsecase usecasePortRecognitionInference.DieUsecase
+	irInferenceDieUsecase usecasePortAnyIrInference.DieUsecase
 }
 
-func NewDieHandler(oDieUsecase usecasePortRecognitionInference.DieUsecase) *DieHandler {
+func NewDieHandler(oDieUsecase usecasePortAnyIrInference.DieUsecase) *DieHandler {
 	return &DieHandler{
-		recognitionInferenceDieUsecase: oDieUsecase,
+		irInferenceDieUsecase: oDieUsecase,
 	}
 }
 
@@ -26,7 +26,7 @@ func (oSelf *DieHandler) Recognize(_ context.Context, oRequest *pbRecognitionTab
 		return nil, status.Error(codes.InvalidArgument, "image is empty")
 	}
 
-	aDies, err := oSelf.recognitionInferenceDieUsecase.Recognize(oRequest.GetImage())
+	aDies, err := oSelf.irInferenceDieUsecase.Recognize(oRequest.GetImage())
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

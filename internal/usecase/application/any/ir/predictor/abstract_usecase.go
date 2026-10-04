@@ -1,4 +1,4 @@
-package usecaseApplicationCommand
+package usecaseApplicationAnyIrPredictor
 
 import (
 	"fmt"

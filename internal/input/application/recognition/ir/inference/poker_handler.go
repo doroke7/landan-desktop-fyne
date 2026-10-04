@@ -1,4 +1,4 @@
-package inputApplicationRecognitionInference
+package inputApplicationRecognitionIrInference
 
 import (
 	pbRecognitionTableInference "landan-desktop-fyne/pb/recognition/table/inference"

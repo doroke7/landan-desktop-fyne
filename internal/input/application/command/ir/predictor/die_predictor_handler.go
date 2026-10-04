@@ -1,27 +1,27 @@
-package inputApplicationCommand
+package inputApplicationCommandIrPredictor
 
 import (
 	"fmt"
 	"io"
 	"path/filepath"
 
-	usecasePortCommand "landan-desktop-fyne/internal/usecase/port/command"
+	usecasePortAnyIrPredictor "landan-desktop-fyne/internal/usecase/port/any/ir/predictor"
 )
 
 // DiePredictorHandler 辨識目錄下所有圖片中的骰子，並印出報告。
 type DiePredictorHandler struct {
-	commandDiePredictorUsecase usecasePortCommand.DiePredictorUsecase
+	irDiePredictorUsecase usecasePortAnyIrPredictor.DiePredictorUsecase
 }
 
-func NewDiePredictorHandler(oDiePredictorUsecase usecasePortCommand.DiePredictorUsecase) *DiePredictorHandler {
+func NewDiePredictorHandler(oDiePredictorUsecase usecasePortAnyIrPredictor.DiePredictorUsecase) *DiePredictorHandler {
 	return &DiePredictorHandler{
-		commandDiePredictorUsecase: oDiePredictorUsecase,
+		irDiePredictorUsecase: oDiePredictorUsecase,
 	}
 }
 
 // Handle 辨識 sWorkdir 目錄下（只讀第一層）所有圖片中的骰子。
 func (oSelf *DiePredictorHandler) Handle(sWorkdir string, oWriter io.Writer) error {
-	oReport, err := oSelf.commandDiePredictorUsecase.Recognize(sWorkdir)
+	oReport, err := oSelf.irDiePredictorUsecase.Recognize(sWorkdir)
 	if err != nil {
 		return err
 	}

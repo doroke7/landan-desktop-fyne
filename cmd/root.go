@@ -19,7 +19,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(desktop.Command, recognition.Command, command.DiePredictorCommand)
+	rootCmd.AddCommand(desktop.Command, recognition.Command, command.Command)
 }
 
 // Execute runs the root command; called from the top-level main.go.
