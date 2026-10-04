@@ -8,24 +8,11 @@ import (
 
 	onnxruntime "github.com/yalue/onnxruntime_go"
 
+	"landan-desktop-fyne/bootstrap"
 	"landan-desktop-fyne/internal/inference"
 	"landan-desktop-fyne/pkg/onnx"
 	"landan-desktop-fyne/pkg/openvino"
 )
-
-// Settings 是 onnxruntime 與 OpenVINO 的共用設定。
-type Settings struct {
-	// Library 是 libonnxruntime 的路徑，空字串就用系統預設位置。
-	Library string
-	// Provider 是 cpu（空字串也當 cpu）、openvino 或 coreml，是 onnxruntime 的 execution provider，仍然讀 onnx。
-	Provider string
-	// ProviderOptions 原樣傳給 Provider。
-	ProviderOptions map[string]string
-	// UseOpenvino 為 true 時改用 OpenVINO 直接讀 .xml，不再用 onnxruntime。
-	UseOpenvino bool
-	// OpenvinoDevice 是 OpenVINO 編譯的裝置，例如 CPU、GPU、NPU。
-	OpenvinoDevice string
-}
 
 // AbstractOnnx 負責推論後端的全域環境（onnxruntime 一個程序只能初始化一次），
 // 各 model 共用 Context。
@@ -38,8 +25,8 @@ type AbstractOnnx struct {
 	openvinoDevice  string
 }
 
-func NewAbstractOnnx(oContext context.Context, oSettings Settings) (*AbstractOnnx, error) {
-	sProvider := strings.ToLower(strings.TrimSpace(oSettings.Provider))
+func NewAbstractOnnx(oContext context.Context, oConfig bootstrap.Config) (*AbstractOnnx, error) {
+	sProvider := strings.ToLower(strings.TrimSpace(oConfig.ONNX.PROVIDER))
 	switch sProvider {
 	case "", "cpu", "openvino", "coreml":
 	default:
@@ -47,9 +34,9 @@ func NewAbstractOnnx(oContext context.Context, oSettings Settings) (*AbstractOnn
 	}
 
 	// 用 OpenVINO 直接讀 .xml 的話不需要 onnxruntime。
-	if !oSettings.UseOpenvino {
-		if oSettings.Library != "" {
-			onnxruntime.SetSharedLibraryPath(oSettings.Library)
+	if !oConfig.OPENVINO.ENABLED {
+		if oConfig.ONNX.LIBRARY != "" {
+			onnxruntime.SetSharedLibraryPath(oConfig.ONNX.LIBRARY)
 		}
 		if !onnxruntime.IsInitialized() {
 			if err := onnxruntime.InitializeEnvironment(); err != nil {
@@ -61,9 +48,9 @@ func NewAbstractOnnx(oContext context.Context, oSettings Settings) (*AbstractOnn
 	return &AbstractOnnx{
 		Context:         oContext,
 		provider:        sProvider,
-		providerOptions: oSettings.ProviderOptions,
-		useOpenvino:     oSettings.UseOpenvino,
-		openvinoDevice:  oSettings.OpenvinoDevice,
+		providerOptions: oConfig.ONNX.PROVIDER_OPTIONS,
+		useOpenvino:     oConfig.OPENVINO.ENABLED,
+		openvinoDevice:  oConfig.OPENVINO.DEVICE,
 	}, nil
 }
 

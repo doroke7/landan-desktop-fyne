@@ -10,21 +10,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// OnnxModel 是一個 onnx 模型的設定：檔案路徑，以及信心低於它就丟掉的門檻（0 ~ 1）。
-//
-//nolint:stylecheck,revive
-type OnnxModel struct {
-	PATH      string  `mapstructure:"path"`
-	THRESHOLD float32 `mapstructure:"threshold"`
-}
-
-// OpenvinoModel 是 OpenVINO 模型的 .xml 路徑（.bin 要在同目錄、同檔名）。
-//
-//nolint:stylecheck,revive
-type OpenvinoModel struct {
-	PATH string `mapstructure:"path"`
-}
-
 //nolint:stylecheck,revive
 type Config struct {
 	SERVICES struct {
@@ -38,21 +23,42 @@ type Config struct {
 		PROVIDER_OPTIONS map[string]string `mapstructure:"provider_options"`
 		DETECT           struct {
 			DIE struct {
-				CUBE OnnxModel `mapstructure:"cube"`
-				TOP  OnnxModel `mapstructure:"top"`
+				CUBE struct {
+					PATH      string  `mapstructure:"path"`
+					THRESHOLD float32 `mapstructure:"threshold"`
+				} `mapstructure:"cube"`
+				TOP struct {
+					PATH      string  `mapstructure:"path"`
+					THRESHOLD float32 `mapstructure:"threshold"`
+				} `mapstructure:"top"`
 			} `mapstructure:"die"`
 			POKER struct {
-				CARD OnnxModel `mapstructure:"card"`
+				CARD struct {
+					PATH      string  `mapstructure:"path"`
+					THRESHOLD float32 `mapstructure:"threshold"`
+				} `mapstructure:"card"`
 			} `mapstructure:"poker"`
 		} `mapstructure:"detect"`
 		CLASSIFY struct {
 			DIE struct {
-				VALUE OnnxModel `mapstructure:"value"`
+				VALUE struct {
+					PATH      string  `mapstructure:"path"`
+					THRESHOLD float32 `mapstructure:"threshold"`
+				} `mapstructure:"value"`
 			} `mapstructure:"die"`
 			POKER struct {
-				CARD OnnxModel `mapstructure:"card"`
-				RANK OnnxModel `mapstructure:"rank"`
-				SUIT OnnxModel `mapstructure:"suit"`
+				CARD struct {
+					PATH      string  `mapstructure:"path"`
+					THRESHOLD float32 `mapstructure:"threshold"`
+				} `mapstructure:"card"`
+				RANK struct {
+					PATH      string  `mapstructure:"path"`
+					THRESHOLD float32 `mapstructure:"threshold"`
+				} `mapstructure:"rank"`
+				SUIT struct {
+					PATH      string  `mapstructure:"path"`
+					THRESHOLD float32 `mapstructure:"threshold"`
+				} `mapstructure:"suit"`
 			} `mapstructure:"poker"`
 		} `mapstructure:"classify"`
 	} `mapstructure:"onnx"`
@@ -61,21 +67,35 @@ type Config struct {
 		DEVICE  string `mapstructure:"device"`
 		DETECT  struct {
 			DIE struct {
-				CUBE OpenvinoModel `mapstructure:"cube"`
-				TOP  OpenvinoModel `mapstructure:"top"`
+				CUBE struct {
+					PATH string `mapstructure:"path"`
+				} `mapstructure:"cube"`
+				TOP struct {
+					PATH string `mapstructure:"path"`
+				} `mapstructure:"top"`
 			} `mapstructure:"die"`
 			POKER struct {
-				CARD OpenvinoModel `mapstructure:"card"`
+				CARD struct {
+					PATH string `mapstructure:"path"`
+				} `mapstructure:"card"`
 			} `mapstructure:"poker"`
 		} `mapstructure:"detect"`
 		CLASSIFY struct {
 			DIE struct {
-				VALUE OpenvinoModel `mapstructure:"value"`
+				VALUE struct {
+					PATH string `mapstructure:"path"`
+				} `mapstructure:"value"`
 			} `mapstructure:"die"`
 			POKER struct {
-				CARD OpenvinoModel `mapstructure:"card"`
-				RANK OpenvinoModel `mapstructure:"rank"`
-				SUIT OpenvinoModel `mapstructure:"suit"`
+				CARD struct {
+					PATH string `mapstructure:"path"`
+				} `mapstructure:"card"`
+				RANK struct {
+					PATH string `mapstructure:"path"`
+				} `mapstructure:"rank"`
+				SUIT struct {
+					PATH string `mapstructure:"path"`
+				} `mapstructure:"suit"`
 			} `mapstructure:"poker"`
 		} `mapstructure:"classify"`
 	} `mapstructure:"openvino"`

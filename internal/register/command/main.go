@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"landan-desktop-fyne/bootstrap"
 	"landan-desktop-fyne/container"
 )
 
@@ -30,7 +31,7 @@ func Init(oCommandCommand *cobra.Command) *cobra.Command {
 			oCtx, fnStop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 			defer fnStop()
 
-			oContainer, err := container.InitDiePredictorCommandContainer(oCtx)
+			oContainer, err := container.InitDiePredictorCommandContainer(oCtx, bootstrap.CONFIG)
 			if err != nil {
 				return fmt.Errorf("init container: %w", err)
 			}
@@ -63,7 +64,7 @@ func Init(oCommandCommand *cobra.Command) *cobra.Command {
 			oCtx, fnStop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 			defer fnStop()
 
-			oContainer, err := container.InitPokerPredictorCommandContainer(oCtx)
+			oContainer, err := container.InitPokerPredictorCommandContainer(oCtx, bootstrap.CONFIG)
 			if err != nil {
 				return fmt.Errorf("init container: %w", err)
 			}

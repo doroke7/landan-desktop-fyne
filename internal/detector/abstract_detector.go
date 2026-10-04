@@ -9,7 +9,7 @@ import (
 
 	xdraw "golang.org/x/image/draw"
 
-	"landan-desktop-fyne/internal/inference"
+	inference "landan-desktop-fyne/internal/inference"
 	outputApplicationOnnx "landan-desktop-fyne/internal/output/application/onnx"
 )
 

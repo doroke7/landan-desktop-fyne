@@ -28,7 +28,7 @@ var Command = &cobra.Command{
 		oCtx, fnStop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer fnStop()
 
-		oContainer, err := container.InitRecognitionContainer(oCtx)
+		oContainer, err := container.InitRecognitionContainer(oCtx, bootstrap.CONFIG)
 		if err != nil {
 			return fmt.Errorf("init container: %w", err)
 		}
