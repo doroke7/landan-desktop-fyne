@@ -26,8 +26,10 @@ type Config struct {
 		} `mapstructure:"recognition"`
 	} `mapstructure:"services"`
 	ONNX struct {
-		LIBRARY string `mapstructure:"library"`
-		DETECT  struct {
+		LIBRARY          string            `mapstructure:"library"`
+		PROVIDER         string            `mapstructure:"provider"`
+		PROVIDER_OPTIONS map[string]string `mapstructure:"provider_options"`
+		DETECT           struct {
 			DIE struct {
 				CUBE OnnxModel `mapstructure:"cube"`
 				TOP  OnnxModel `mapstructure:"top"`

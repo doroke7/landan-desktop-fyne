@@ -40,7 +40,15 @@ func NewAbstractClassifier(oAbstractOnnx *outputApplicationOnnx.AbstractOnnx, sP
 		return nil, fmt.Errorf("model %s: input shape %v is not a fixed [1, 3, H, W]", sPath, aShape)
 	}
 
-	oSession, err := onnxruntime.NewDynamicAdvancedSession(sPath, []string{aInputs[0].Name}, []string{aOutputs[0].Name}, nil)
+	oSessionOptions, err := oAbstractOnnx.NewSessionOptions()
+	if err != nil {
+		return nil, fmt.Errorf("model %s: %w", sPath, err)
+	}
+	if oSessionOptions != nil {
+		defer oSessionOptions.Destroy()
+	}
+
+	oSession, err := onnxruntime.NewDynamicAdvancedSession(sPath, []string{aInputs[0].Name}, []string{aOutputs[0].Name}, oSessionOptions)
 	if err != nil {
 		return nil, fmt.Errorf("load model %s: %w", sPath, err)
 	}

@@ -1,6 +1,14 @@
 # libonnxruntime 動態函式庫的路徑，留空就用系統預設位置。
 library: "/opt/homebrew/opt/onnxruntime/lib/libonnxruntime.dylib"
 
+# 推論用的 execution provider：cpu（預設）、openvino、coreml。
+# 選的 provider 必須有編進上面那個 libonnxruntime，沒有的話啟動時會直接報錯，不會偷偷退回 cpu。
+provider: "cpu"
+# 傳給 provider 的選項，例如 openvino 可用 device_type: "CPU" / "GPU" / "NPU"
+# https://onnxruntime.ai/docs/execution-providers/OpenVINO-ExecutionProvider.html#summary-of-options
+provider_options: {}
+#  device_type: "CPU"
+
 # 每個模型：path 是 onnx 檔案，threshold 是信心低於它就丟掉（0 ~ 1）。
 detect:
   die:

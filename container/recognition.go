@@ -35,7 +35,7 @@ func InitRecognitionContainer(oContext context.Context) (*RecognitionContainer, 
 }
 
 func newDieTopDetector(oContext context.Context) (*outputApplicationOnnx.AbstractOnnx, *detector.DieTopDetector, error) {
-	oAbstractOnnx, err := outputApplicationOnnx.NewAbstractOnnx(oContext, bootstrap.CONFIG.ONNX.LIBRARY)
+	oAbstractOnnx, err := outputApplicationOnnx.NewAbstractOnnx(oContext, bootstrap.CONFIG.ONNX.LIBRARY, bootstrap.CONFIG.ONNX.PROVIDER, bootstrap.CONFIG.ONNX.PROVIDER_OPTIONS)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -72,7 +72,7 @@ func newDiePipeline(oContext context.Context) (outputPortAnyPipeline.DiePipeline
 }
 
 func newPokerPipeline(oContext context.Context) (outputPortAnyPipeline.PokerPipeline, error) {
-	oAbstractOnnx, err := outputApplicationOnnx.NewAbstractOnnx(oContext, bootstrap.CONFIG.ONNX.LIBRARY)
+	oAbstractOnnx, err := outputApplicationOnnx.NewAbstractOnnx(oContext, bootstrap.CONFIG.ONNX.LIBRARY, bootstrap.CONFIG.ONNX.PROVIDER, bootstrap.CONFIG.ONNX.PROVIDER_OPTIONS)
 	if err != nil {
 		return nil, err
 	}
