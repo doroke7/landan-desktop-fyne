@@ -20,7 +20,7 @@ func NewPokerCardDetector(oAbstractOnnx *outputApplicationOnnx.AbstractOnnx) (*P
 		return nil, fmt.Errorf("onnx.detect.poker.card.path is empty (is config/onnx.yaml filled in? run from the project root)")
 	}
 
-	oAbstractDetector, err := NewAbstractDetector(oAbstractOnnx, bootstrap.CONFIG.ONNX.DETECT.POKER.CARD.PATH)
+	oAbstractDetector, err := NewAbstractDetector(oAbstractOnnx, bootstrap.CONFIG.ONNX.DETECT.POKER.CARD.PATH, bootstrap.CONFIG.OPENVINO.DETECT.POKER.CARD.PATH)
 	if err != nil {
 		return nil, err
 	}

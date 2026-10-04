@@ -35,7 +35,7 @@ func InitRecognitionContainer(oContext context.Context) (*RecognitionContainer, 
 }
 
 func newDieTopDetector(oContext context.Context) (*outputApplicationOnnx.AbstractOnnx, *detector.DieTopDetector, error) {
-	oAbstractOnnx, err := outputApplicationOnnx.NewAbstractOnnx(oContext, bootstrap.CONFIG.ONNX.LIBRARY, bootstrap.CONFIG.ONNX.PROVIDER, bootstrap.CONFIG.ONNX.PROVIDER_OPTIONS)
+	oAbstractOnnx, err := outputApplicationOnnx.NewAbstractOnnx(oContext, newOnnxSettings())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -72,7 +72,7 @@ func newDiePipeline(oContext context.Context) (outputPortAnyPipeline.DiePipeline
 }
 
 func newPokerPipeline(oContext context.Context) (outputPortAnyPipeline.PokerPipeline, error) {
-	oAbstractOnnx, err := outputApplicationOnnx.NewAbstractOnnx(oContext, bootstrap.CONFIG.ONNX.LIBRARY, bootstrap.CONFIG.ONNX.PROVIDER, bootstrap.CONFIG.ONNX.PROVIDER_OPTIONS)
+	oAbstractOnnx, err := outputApplicationOnnx.NewAbstractOnnx(oContext, newOnnxSettings())
 	if err != nil {
 		return nil, err
 	}
@@ -95,4 +95,15 @@ func newPokerPipeline(oContext context.Context) (outputPortAnyPipeline.PokerPipe
 	}
 
 	return outputApplicationOnnxPipeline.NewPokerPipeline(oPokerCardDetector, oPokerFaceClassifier, oPokerRankClassifier, oPokerSuitClassifier), nil
+}
+
+// newOnnxSettings 把 config/onnx.yaml 與 config/openvino.yaml 組成推論後端的設定。
+func newOnnxSettings() outputApplicationOnnx.Settings {
+	return outputApplicationOnnx.Settings{
+		Library:         bootstrap.CONFIG.ONNX.LIBRARY,
+		Provider:        bootstrap.CONFIG.ONNX.PROVIDER,
+		ProviderOptions: bootstrap.CONFIG.ONNX.PROVIDER_OPTIONS,
+		UseOpenvino:     bootstrap.CONFIG.OPENVINO.ENABLED,
+		OpenvinoDevice:  bootstrap.CONFIG.OPENVINO.DEVICE,
+	}
 }

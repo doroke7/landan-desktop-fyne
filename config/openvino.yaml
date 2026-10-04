@@ -1,0 +1,30 @@
+# true 時，偵測與分類改用 OpenVINO 直接讀下面的 .xml，不再用 onnx.yaml 的 onnx 模型。
+# 要先裝好 OpenVINO（macOS: brew install openvino）；macOS 預設就會編進執行檔，Linux、Windows 要用 -tags openvino 編譯。
+enabled: true
+
+# OpenVINO 編譯模型的裝置：CPU、GPU、NPU
+device: "CPU"
+
+# 每個模型的 .xml 路徑（.bin 要在同目錄、同檔名）。信心門檻沿用 onnx.yaml 的 threshold。
+# 要用 imgsz=720,1280 匯出（yolo export format=openvino imgsz=720,1280），detect 的輸出要是 end2end 的 [1, N, 6]。
+detect:
+  die:
+    cube:
+      path: "./runs/detect/die/cube/result-1/weights/best_openvino_model/best.xml"
+    top:
+      path: "./runs/detect/die/top/result-1/weights/best_openvino_model/best.xml"
+  poker:
+    card:
+      path: "./runs/detect/poker/card/result-3/weights/best_openvino_model/best.xml"
+
+classify:
+  die:
+    value:
+      path: "./runs/classify/die/value/result-1/weights/best_openvino_model/best.xml"
+  poker:
+    card:
+      path: "./runs/classify/poker/card/result-2/weights/best_openvino_model/best.xml"
+    rank:
+      path: "./runs/classify/poker/rank/result-2/weights/best_openvino_model/best.xml"
+    suit:
+      path: "./runs/classify/poker/suit/result-2/weights/best_openvino_model/best.xml"

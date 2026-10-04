@@ -18,6 +18,13 @@ type OnnxModel struct {
 	THRESHOLD float32 `mapstructure:"threshold"`
 }
 
+// OpenvinoModel 是 OpenVINO 模型的 .xml 路徑（.bin 要在同目錄、同檔名）。
+//
+//nolint:stylecheck,revive
+type OpenvinoModel struct {
+	PATH string `mapstructure:"path"`
+}
+
 //nolint:stylecheck,revive
 type Config struct {
 	SERVICES struct {
@@ -49,6 +56,29 @@ type Config struct {
 			} `mapstructure:"poker"`
 		} `mapstructure:"classify"`
 	} `mapstructure:"onnx"`
+	OPENVINO struct {
+		ENABLED bool   `mapstructure:"enabled"`
+		DEVICE  string `mapstructure:"device"`
+		DETECT  struct {
+			DIE struct {
+				CUBE OpenvinoModel `mapstructure:"cube"`
+				TOP  OpenvinoModel `mapstructure:"top"`
+			} `mapstructure:"die"`
+			POKER struct {
+				CARD OpenvinoModel `mapstructure:"card"`
+			} `mapstructure:"poker"`
+		} `mapstructure:"detect"`
+		CLASSIFY struct {
+			DIE struct {
+				VALUE OpenvinoModel `mapstructure:"value"`
+			} `mapstructure:"die"`
+			POKER struct {
+				CARD OpenvinoModel `mapstructure:"card"`
+				RANK OpenvinoModel `mapstructure:"rank"`
+				SUIT OpenvinoModel `mapstructure:"suit"`
+			} `mapstructure:"poker"`
+		} `mapstructure:"classify"`
+	} `mapstructure:"openvino"`
 	DEFAULT struct {
 		DEBUG bool `mapstructure:"debug"`
 	} `mapstructure:"default"`

@@ -22,7 +22,7 @@ func NewPokerRankClassifier(oAbstractOnnx *outputApplicationOnnx.AbstractOnnx) (
 		return nil, fmt.Errorf("onnx.classify.poker.rank.path is empty (is config/onnx.yaml filled in? run from the project root)")
 	}
 
-	oAbstractClassifier, err := NewAbstractClassifier(oAbstractOnnx, bootstrap.CONFIG.ONNX.CLASSIFY.POKER.RANK.PATH)
+	oAbstractClassifier, err := NewAbstractClassifier(oAbstractOnnx, bootstrap.CONFIG.ONNX.CLASSIFY.POKER.RANK.PATH, bootstrap.CONFIG.OPENVINO.CLASSIFY.POKER.RANK.PATH)
 	if err != nil {
 		return nil, err
 	}

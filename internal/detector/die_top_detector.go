@@ -20,7 +20,7 @@ func NewDieTopDetector(oAbstractOnnx *outputApplicationOnnx.AbstractOnnx) (*DieT
 		return nil, fmt.Errorf("onnx.detect.die.top.path is empty (is config/onnx.yaml filled in? run from the project root)")
 	}
 
-	oAbstractDetector, err := NewAbstractDetector(oAbstractOnnx, bootstrap.CONFIG.ONNX.DETECT.DIE.TOP.PATH)
+	oAbstractDetector, err := NewAbstractDetector(oAbstractOnnx, bootstrap.CONFIG.ONNX.DETECT.DIE.TOP.PATH, bootstrap.CONFIG.OPENVINO.DETECT.DIE.TOP.PATH)
 	if err != nil {
 		return nil, err
 	}

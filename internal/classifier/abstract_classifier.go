@@ -7,11 +7,10 @@ import (
 	"image/draw"
 	_ "image/jpeg"
 	_ "image/png"
-	"slices"
 
-	onnxruntime "github.com/yalue/onnxruntime_go"
 	xdraw "golang.org/x/image/draw"
 
+	"landan-desktop-fyne/internal/inference"
 	outputApplicationOnnx "landan-desktop-fyne/internal/output/application/onnx"
 )
 
@@ -20,46 +19,24 @@ import (
 //   - 輸出 [1, C]，各類別的機率
 type AbstractClassifier struct {
 	*outputApplicationOnnx.AbstractOnnx
-	session    *onnxruntime.DynamicAdvancedSession
-	inputName  string
-	outputName string
-	width      int
-	height     int
+	model  inference.Model
+	width  int
+	height int
 }
 
-func NewAbstractClassifier(oAbstractOnnx *outputApplicationOnnx.AbstractOnnx, sPath string) (*AbstractClassifier, error) {
-	aInputs, aOutputs, err := onnxruntime.GetInputOutputInfo(sPath)
+// NewAbstractClassifier 載入模型：config 啟用 OpenVINO 時讀 sOpenvinoPath（.xml），否則讀 sPath（.onnx）。
+func NewAbstractClassifier(oAbstractOnnx *outputApplicationOnnx.AbstractOnnx, sPath string, sOpenvinoPath string) (*AbstractClassifier, error) {
+	oModel, err := oAbstractOnnx.LoadModel(sPath, sOpenvinoPath)
 	if err != nil {
-		return nil, fmt.Errorf("read model %s: %w", sPath, err)
+		return nil, err
 	}
-	if len(aInputs) != 1 || len(aOutputs) != 1 {
-		return nil, fmt.Errorf("model %s: want 1 input and 1 output, got %d and %d", sPath, len(aInputs), len(aOutputs))
-	}
-	aShape := aInputs[0].Dimensions
-	if len(aShape) != 4 || aShape[1] != 3 || aShape[2] <= 0 || aShape[3] <= 0 {
-		return nil, fmt.Errorf("model %s: input shape %v is not a fixed [1, 3, H, W]", sPath, aShape)
-	}
-
-	oSessionOptions, err := oAbstractOnnx.NewSessionOptions()
-	if err != nil {
-		return nil, fmt.Errorf("model %s: %w", sPath, err)
-	}
-	if oSessionOptions != nil {
-		defer oSessionOptions.Destroy()
-	}
-
-	oSession, err := onnxruntime.NewDynamicAdvancedSession(sPath, []string{aInputs[0].Name}, []string{aOutputs[0].Name}, oSessionOptions)
-	if err != nil {
-		return nil, fmt.Errorf("load model %s: %w", sPath, err)
-	}
+	iHeight, iWidth := oModel.InputSize()
 
 	return &AbstractClassifier{
 		AbstractOnnx: oAbstractOnnx,
-		session:      oSession,
-		inputName:    aInputs[0].Name,
-		outputName:   aOutputs[0].Name,
-		width:        int(aShape[3]),
-		height:       int(aShape[2]),
+		model:        oModel,
+		width:        iWidth,
+		height:       iHeight,
 	}, nil
 }
 
@@ -70,29 +47,15 @@ func (oSelf *AbstractClassifier) Recognize(aImage []byte) ([]float32, error) {
 		return nil, fmt.Errorf("decode image: %w", err)
 	}
 
-	oInput, err := onnxruntime.NewTensor(onnxruntime.NewShape(1, 3, int64(oSelf.height), int64(oSelf.width)), oSelf.toPlanes(oSource))
+	aData, aShape, err := oSelf.model.Run(oSelf.toPlanes(oSource))
 	if err != nil {
-		return nil, err
-	}
-	defer oInput.Destroy()
-
-	aOutputs := []onnxruntime.Value{nil}
-	if err := oSelf.session.Run([]onnxruntime.Value{oInput}, aOutputs); err != nil {
 		return nil, fmt.Errorf("run model: %w", err)
 	}
-	defer aOutputs[0].Destroy()
-
-	oOutput, ok := aOutputs[0].(*onnxruntime.Tensor[float32])
-	if !ok {
-		return nil, fmt.Errorf("model output is not float32")
-	}
-	aShape := oOutput.GetShape()
 	if len(aShape) != 2 || aShape[0] != 1 {
 		return nil, fmt.Errorf("unsupported output shape %v, want [1, C]", aShape)
 	}
 
-	// tensor 在 return 時就釋放了，所以要複製一份。
-	return slices.Clone(oOutput.GetData()), nil
+	return aData, nil
 }
 
 // toPlanes 把圖等比例縮放後置中放進模型輸入大小（其餘補黑），排成 RGB 三個平面（NCHW），數值 0~1。
@@ -124,7 +87,7 @@ func (oSelf *AbstractClassifier) toPlanes(oSource image.Image) []float32 {
 
 // Close 釋放 onnx session。
 func (oSelf *AbstractClassifier) Close() error {
-	return oSelf.session.Destroy()
+	return oSelf.model.Close()
 }
 
 // Best 對圖跑一次模型，回傳機率最高的類別名稱與機率；aNames 的順序就是類別編號。

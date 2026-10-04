@@ -23,7 +23,7 @@ func NewDieValueClassifier(oAbstractOnnx *outputApplicationOnnx.AbstractOnnx) (*
 		return nil, fmt.Errorf("onnx.classify.die.value.path is empty (is config/onnx.yaml filled in? run from the project root)")
 	}
 
-	oAbstractClassifier, err := NewAbstractClassifier(oAbstractOnnx, bootstrap.CONFIG.ONNX.CLASSIFY.DIE.VALUE.PATH)
+	oAbstractClassifier, err := NewAbstractClassifier(oAbstractOnnx, bootstrap.CONFIG.ONNX.CLASSIFY.DIE.VALUE.PATH, bootstrap.CONFIG.OPENVINO.CLASSIFY.DIE.VALUE.PATH)
 	if err != nil {
 		return nil, err
 	}
