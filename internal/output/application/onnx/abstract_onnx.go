@@ -9,6 +9,7 @@ import (
 	onnxruntime "github.com/yalue/onnxruntime_go"
 
 	"landan-desktop-fyne/internal/inference"
+	"landan-desktop-fyne/pkg/onnx"
 	"landan-desktop-fyne/pkg/openvino"
 )
 
@@ -70,7 +71,15 @@ func NewAbstractOnnx(oContext context.Context, oSettings Settings) (*AbstractOnn
 // 載入成功會印出這個模型實際用的格式與引擎。
 func (oSelf *AbstractOnnx) LoadModel(sOnnxPath string, sOpenvinoPath string) (inference.Model, error) {
 	if !oSelf.useOpenvino {
-		oModel, err := oSelf.loadOnnxModel(sOnnxPath)
+		oSessionOptions, err := oSelf.NewSessionOptions()
+		if err != nil {
+			return nil, fmt.Errorf("model %s: %w", sOnnxPath, err)
+		}
+		if oSessionOptions != nil {
+			defer oSessionOptions.Destroy()
+		}
+
+		oModel, err := onnx.Load(sOnnxPath, oSessionOptions)
 		if err != nil {
 			return nil, err
 		}

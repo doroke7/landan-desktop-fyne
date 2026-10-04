@@ -1,23 +1,22 @@
-package outputApplicationOnnx
+// Package onnx 用 onnxruntime 載入並執行 ONNX 模型。onnxruntime 的環境（共用函式庫路徑、InitializeEnvironment）要由呼叫端先初始化。
+package onnx
 
 import (
 	"fmt"
 	"slices"
 
 	onnxruntime "github.com/yalue/onnxruntime_go"
-
-	"landan-desktop-fyne/internal/inference"
 )
 
-// OnnxModel 是用 onnxruntime 跑的模型。
-type OnnxModel struct {
+// Model 是一個載入好的 ONNX 模型，只有一個輸入、一個輸出，輸入是固定的 [1, 3, H, W]、float32。
+type Model struct {
 	session *onnxruntime.DynamicAdvancedSession
 	height  int
 	width   int
 }
 
-// loadOnnxModel 載入 sPath，檢查是一個輸入、一個輸出，而且輸入是固定的 [1, 3, H, W]。
-func (oSelf *AbstractOnnx) loadOnnxModel(sPath string) (inference.Model, error) {
+// Load 載入 sPath。oSessionOptions 可以是 nil（用 onnxruntime 預設，也就是 CPU），Load 回來之後就可以 Destroy 它。
+func Load(sPath string, oSessionOptions *onnxruntime.SessionOptions) (*Model, error) {
 	aInputs, aOutputs, err := onnxruntime.GetInputOutputInfo(sPath)
 	if err != nil {
 		return nil, fmt.Errorf("read model %s: %w", sPath, err)
@@ -30,27 +29,19 @@ func (oSelf *AbstractOnnx) loadOnnxModel(sPath string) (inference.Model, error) 
 		return nil, fmt.Errorf("model %s: input shape %v is not a fixed [1, 3, H, W]", sPath, aShape)
 	}
 
-	oSessionOptions, err := oSelf.NewSessionOptions()
-	if err != nil {
-		return nil, fmt.Errorf("model %s: %w", sPath, err)
-	}
-	if oSessionOptions != nil {
-		defer oSessionOptions.Destroy()
-	}
-
 	oSession, err := onnxruntime.NewDynamicAdvancedSession(sPath, []string{aInputs[0].Name}, []string{aOutputs[0].Name}, oSessionOptions)
 	if err != nil {
 		return nil, fmt.Errorf("load model %s: %w", sPath, err)
 	}
 
-	return &OnnxModel{session: oSession, height: int(aShape[2]), width: int(aShape[3])}, nil
+	return &Model{session: oSession, height: int(aShape[2]), width: int(aShape[3])}, nil
 }
 
-func (oSelf *OnnxModel) InputSize() (int, int) {
+func (oSelf *Model) InputSize() (int, int) {
 	return oSelf.height, oSelf.width
 }
 
-func (oSelf *OnnxModel) Run(aInput []float32) ([]float32, []int64, error) {
+func (oSelf *Model) Run(aInput []float32) ([]float32, []int64, error) {
 	oInput, err := onnxruntime.NewTensor(onnxruntime.NewShape(1, 3, int64(oSelf.height), int64(oSelf.width)), aInput)
 	if err != nil {
 		return nil, nil, err
@@ -72,6 +63,6 @@ func (oSelf *OnnxModel) Run(aInput []float32) ([]float32, []int64, error) {
 	return slices.Clone(oOutput.GetData()), slices.Clone(oOutput.GetShape()), nil
 }
 
-func (oSelf *OnnxModel) Close() error {
+func (oSelf *Model) Close() error {
 	return oSelf.session.Destroy()
 }
