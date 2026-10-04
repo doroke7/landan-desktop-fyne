@@ -5,6 +5,7 @@ import (
 	"io"
 	"path/filepath"
 
+	domain "landan-desktop-fyne/internal/domain"
 	usecasePortAnyIrPredictor "landan-desktop-fyne/internal/usecase/port/any/ir/predictor"
 )
 
@@ -19,18 +20,10 @@ func NewPokerPredictorHandler(oPokerPredictorUsecase usecasePortAnyIrPredictor.P
 	}
 }
 
-// Handle 辨識 sWorkdir 目錄下（只讀第一層）所有圖片中的撲克牌。
-func (oSelf *PokerPredictorHandler) Handle(sWorkdir string, oWriter io.Writer) error {
-	oReport, err := oSelf.irPokerPredictorUsecase.Recognize(sWorkdir)
-	if err != nil {
-		return err
-	}
-
-	for _, oResult := range oReport.Results {
-		fmt.Fprintf(oWriter, "%s 執行時間 %.1f ms\n", filepath.Base(oResult.Image), float64(oResult.Elapsed.Microseconds())/1000)
-	}
-	for _, oResult := range oReport.Results {
-		fmt.Fprintf(oWriter, "%s：共偵測到 %d 張撲克牌\n", filepath.Base(oResult.Image), len(oResult.Pokers))
+// Handle 辨識 sWorkdir 目錄下（只讀第一層）所有圖片中的撲克牌；nLimit 大於 0 時只辨識前 nLimit 張。
+func (oSelf *PokerPredictorHandler) Handle(sWorkdir string, nLimit int, oWriter io.Writer) error {
+	oReport, err := oSelf.irPokerPredictorUsecase.Recognize(sWorkdir, nLimit, func(oResult domain.PokerPredictionResult) {
+		fmt.Fprintf(oWriter, "%s：共偵測到 %d 張撲克牌，執行時間 %.1f ms\n", filepath.Base(oResult.Image), len(oResult.Pokers), float64(oResult.Elapsed.Microseconds())/1000)
 		for iPoker, oPoker := range oResult.Pokers {
 			fmt.Fprintf(oWriter, "  #%d poker (%.2f) box=(%d,%d,%d,%d) %s (%.2f)", iPoker+1, oPoker.Confidence, oPoker.X, oPoker.Y, oPoker.X+oPoker.Width, oPoker.Y+oPoker.Height, oPoker.Face.Name, oPoker.Face.Confidence)
 			if oPoker.Suit != nil && oPoker.Rank != nil {
@@ -38,6 +31,9 @@ func (oSelf *PokerPredictorHandler) Handle(sWorkdir string, oWriter io.Writer) e
 			}
 			fmt.Fprintln(oWriter)
 		}
+	})
+	if err != nil {
+		return err
 	}
 
 	fmt.Fprintln(oWriter, "========== 報告 ==========")

@@ -45,6 +45,7 @@ func Init(oCommandCommand *cobra.Command) *cobra.Command {
 	oCommandCommand.AddCommand(oDiePredictorCommand)
 
 	var sPokerWorkdir string
+	var nPokerLimit int
 
 	oPokerPredictorCommand := &cobra.Command{
 		Use:   "poker-predictor",
@@ -55,6 +56,10 @@ func Init(oCommandCommand *cobra.Command) *cobra.Command {
 				return fmt.Errorf("--workdir %q 不是一個存在的目錄", sPokerWorkdir)
 			}
 
+			if nPokerLimit < 0 {
+				return fmt.Errorf("--limit 不能是負數: %d", nPokerLimit)
+			}
+
 			oCtx, fnStop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 			defer fnStop()
 
@@ -63,11 +68,12 @@ func Init(oCommandCommand *cobra.Command) *cobra.Command {
 				return fmt.Errorf("init container: %w", err)
 			}
 
-			return oContainer.PokerPredictor.Handle(sPokerWorkdir, oCmd.OutOrStdout())
+			return oContainer.PokerPredictor.Handle(sPokerWorkdir, nPokerLimit, oCmd.OutOrStdout())
 		},
 	}
 
 	oPokerPredictorCommand.Flags().StringVar(&sPokerWorkdir, "workdir", "", "要辨識的圖片目錄（只讀第一層）")
+	oPokerPredictorCommand.Flags().IntVar(&nPokerLimit, "limit", 0, "只辨識檔名排序後的前 N 張，0 代表全部")
 	_ = oPokerPredictorCommand.MarkFlagRequired("workdir")
 
 	oCommandCommand.AddCommand(oPokerPredictorCommand)

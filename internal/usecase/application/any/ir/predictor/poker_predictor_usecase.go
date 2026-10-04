@@ -23,10 +23,14 @@ func NewPokerPredictorUsecase(oPokerPipeline outputPortAnyPipeline.PokerPipeline
 	}
 }
 
-func (oSelf *PokerPredictorUsecase) Recognize(sWorkdir string) (*domain.PokerPredictionReport, error) {
+func (oSelf *PokerPredictorUsecase) Recognize(sWorkdir string, nLimit int, fnOnResult func(domain.PokerPredictionResult)) (*domain.PokerPredictionReport, error) {
 	aImages, err := oSelf.ListImages(sWorkdir)
 	if err != nil {
 		return nil, err
+	}
+
+	if nLimit > 0 && len(aImages) > nLimit {
+		aImages = aImages[:nLimit]
 	}
 
 	tStarted := time.Now()
@@ -45,7 +49,11 @@ func (oSelf *PokerPredictorUsecase) Recognize(sWorkdir string) (*domain.PokerPre
 			return nil, fmt.Errorf("%s: %w", filepath.Base(sImage), err)
 		}
 
-		aResults = append(aResults, domain.PokerPredictionResult{Image: sImage, Pokers: aPokers, Elapsed: time.Since(tImageStarted)})
+		oResult := domain.PokerPredictionResult{Image: sImage, Pokers: aPokers, Elapsed: time.Since(tImageStarted)}
+		aResults = append(aResults, oResult)
+		if fnOnResult != nil {
+			fnOnResult(oResult)
+		}
 	}
 
 	tElapsed := time.Since(tStarted)

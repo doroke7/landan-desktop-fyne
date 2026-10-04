@@ -27,10 +27,7 @@ func (oSelf *DiePredictorHandler) Handle(sWorkdir string, oWriter io.Writer) err
 	}
 
 	for _, oResult := range oReport.Results {
-		fmt.Fprintf(oWriter, "%s 執行時間 %.1f ms\n", filepath.Base(oResult.Image), float64(oResult.Elapsed.Microseconds())/1000)
-	}
-	for _, oResult := range oReport.Results {
-		fmt.Fprintf(oWriter, "%s：共偵測到 %d 顆骰子\n", filepath.Base(oResult.Image), len(oResult.Dies))
+		fmt.Fprintf(oWriter, "%s：共偵測到 %d 顆骰子，執行時間 %.1f ms\n", filepath.Base(oResult.Image), len(oResult.Dies), float64(oResult.Elapsed.Microseconds())/1000)
 		for iDie, oDie := range oResult.Dies {
 			fmt.Fprintf(oWriter, "  #%d die (%.2f) box=(%d,%d,%d,%d)\n", iDie+1, oDie.Confidence, oDie.X, oDie.Y, oDie.X+oDie.Width, oDie.Y+oDie.Height)
 		}
