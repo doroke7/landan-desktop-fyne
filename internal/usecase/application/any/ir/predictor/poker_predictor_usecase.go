@@ -37,19 +37,19 @@ func (oSelf *PokerPredictorUsecase) Recognize(sWorkdir string, nLimit int, fnOnR
 
 	aResults := make([]domain.PokerPredictionResult, 0, len(aImages))
 	for _, sImage := range aImages {
-		tImageStarted := time.Now()
-
 		aImage, err := os.ReadFile(sImage)
 		if err != nil {
 			return nil, fmt.Errorf("%s: 無法讀取圖片: %w", filepath.Base(sImage), err)
 		}
 
-		aPokers, err := oSelf.pokerPipeline.Recognize(aImage)
+		// 只量 pipeline 跑一次的時間（偵測加所有牌的分類），不含讀檔。
+		tImageStarted := time.Now()
+		oRecognition, err := oSelf.pokerPipeline.Recognize(aImage)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", filepath.Base(sImage), err)
 		}
 
-		oResult := domain.PokerPredictionResult{Image: sImage, Pokers: aPokers, Elapsed: time.Since(tImageStarted)}
+		oResult := domain.PokerPredictionResult{Image: sImage, Pokers: oRecognition.Pokers, Elapsed: time.Since(tImageStarted), DetectElapsed: oRecognition.DetectElapsed}
 		aResults = append(aResults, oResult)
 		if fnOnResult != nil {
 			fnOnResult(oResult)

@@ -6,6 +6,7 @@ import (
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
+	"time"
 
 	classifier "landan-desktop-fyne/internal/classifier"
 	detector "landan-desktop-fyne/internal/detector"
@@ -39,13 +40,15 @@ func NewPokerPipeline(
 	}
 }
 
-func (oSelf *PokerPipeline) Recognize(aImage []byte) ([]*domain.Poker, error) {
+func (oSelf *PokerPipeline) Recognize(aImage []byte) (*domain.PokerRecognition, error) {
+	tDetectStarted := time.Now()
 	aPokers, err := oSelf.pokerCardDetector.Recognize(aImage)
 	if err != nil {
 		return nil, fmt.Errorf("detect pokers: %w", err)
 	}
+	oRecognition := &domain.PokerRecognition{Pokers: aPokers, DetectElapsed: time.Since(tDetectStarted)}
 	if len(aPokers) == 0 {
-		return aPokers, nil
+		return oRecognition, nil
 	}
 
 	oSource, _, err := image.Decode(bytes.NewReader(aImage))
@@ -54,6 +57,8 @@ func (oSelf *PokerPipeline) Recognize(aImage []byte) ([]*domain.Poker, error) {
 	}
 
 	for iPoker, oPoker := range aPokers {
+		tPokerStarted := time.Now()
+
 		aCrop, err := crop(oSource, oPoker.X, oPoker.Y, oPoker.Width, oPoker.Height)
 		if err != nil {
 			return nil, fmt.Errorf("crop poker #%d: %w", iPoker+1, err)
@@ -64,6 +69,7 @@ func (oSelf *PokerPipeline) Recognize(aImage []byte) ([]*domain.Poker, error) {
 			return nil, fmt.Errorf("classify poker #%d face: %w", iPoker+1, err)
 		}
 		if oPoker.Face.Name != pokerFaceFront {
+			oPoker.Elapsed = time.Since(tPokerStarted)
 			continue
 		}
 
@@ -75,7 +81,8 @@ func (oSelf *PokerPipeline) Recognize(aImage []byte) ([]*domain.Poker, error) {
 		if err != nil {
 			return nil, fmt.Errorf("classify poker #%d rank: %w", iPoker+1, err)
 		}
+		oPoker.Elapsed = time.Since(tPokerStarted)
 	}
 
-	return aPokers, nil
+	return oRecognition, nil
 }

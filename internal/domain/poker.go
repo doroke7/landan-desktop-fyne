@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 // Poker is one playing card found in an image.
 type Poker struct {
 	// Bounding box in pixels, origin at the top-left corner of the image.
@@ -14,6 +16,15 @@ type Poker struct {
 	// Rank and Suit are only read when Face is "Front"; nil otherwise.
 	Rank *PokerRank
 	Suit *PokerSuit
+	// Elapsed is how long reading this one card took: face, plus rank and suit when it faces up.
+	Elapsed time.Duration
+}
+
+// PokerRecognition is what a pipeline returns for one image.
+type PokerRecognition struct {
+	Pokers []*Poker
+	// DetectElapsed is how long the detector took on the whole image (decode, resize, inference).
+	DetectElapsed time.Duration
 }
 
 // PokerFace is which side of a card faces up.
