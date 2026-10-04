@@ -13,9 +13,9 @@ import (
 //nolint:stylecheck,revive
 type Config struct {
 	SERVICES struct {
-		IR struct {
+		RECOGNITION struct {
 			PORT string `mapstructure:"port"`
-		} `mapstructure:"ir"`
+		} `mapstructure:"recognition"`
 	} `mapstructure:"services"`
 	ONNX struct {
 		LIBRARY string `mapstructure:"library"`

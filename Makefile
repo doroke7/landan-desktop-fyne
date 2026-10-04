@@ -53,7 +53,7 @@ protoc:
 	-I ./proto \
 	--go_out=paths=source_relative:./pb \
 	--go-grpc_out=paths=source_relative:./pb \
-	$$(find ./proto/ir -name "*.proto")
+	$$(find ./proto/recognition -name "*.proto")
 
 .PHONY: clean
 clean:
