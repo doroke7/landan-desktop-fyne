@@ -9,19 +9,18 @@ import (
 	outputPortAnyDetector "landan-desktop-fyne/internal/output/port/any/detector"
 )
 
-// 信心低於這個值的框直接丟掉。
-const fDieConfidenceThreshold = 0.25
-
 // DieTopDetectorModel 用 onnx 跑 die 的偵測模型，onnx 的細節都在 AbstractDetector。
 type DieTopDetectorModel struct {
 	*AbstractDetector
+	threshold float32
 }
 
-// NewDieTopDetectorModel 從 config/onnx.yaml 的 detect.die.top 讀模型路徑。
+// NewDieTopDetectorModel 從 config/onnx.yaml 的 detect.die.top 讀模型路徑與信心門檻。
 func NewDieTopDetectorModel(oAbstractOnnx *outputApplicationOnnx.AbstractOnnx) (outputPortAnyDetector.DieTopDetectorModel, error) {
-	sModelPath := bootstrap.CONFIG.ONNX.DETECT.DIE.TOP
+	oModelConfig := bootstrap.CONFIG.ONNX.DETECT.DIE.TOP
+	sModelPath := oModelConfig.PATH
 	if sModelPath == "" {
-		return nil, fmt.Errorf("onnx.detect.die.top is empty (is config/onnx.yaml filled in? run from the project root)")
+		return nil, fmt.Errorf("onnx.detect.die.top.path is empty (is config/onnx.yaml filled in? run from the project root)")
 	}
 
 	oAbstractDetector, err := NewAbstractDetector(oAbstractOnnx, sModelPath)
@@ -29,11 +28,11 @@ func NewDieTopDetectorModel(oAbstractOnnx *outputApplicationOnnx.AbstractOnnx) (
 		return nil, err
 	}
 
-	return &DieTopDetectorModel{AbstractDetector: oAbstractDetector}, nil
+	return &DieTopDetectorModel{AbstractDetector: oAbstractDetector, threshold: oModelConfig.THRESHOLD}, nil
 }
 
 func (oSelf *DieTopDetectorModel) Recognize(aImage []byte) ([]*domain.Die, error) {
-	aDetections, err := oSelf.AbstractDetector.Recognize(aImage, fDieConfidenceThreshold)
+	aDetections, err := oSelf.AbstractDetector.Recognize(aImage, oSelf.threshold)
 	if err != nil {
 		return nil, err
 	}

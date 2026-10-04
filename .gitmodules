@@ -7,3 +7,6 @@
 [submodule "proto"]
 	path = proto
 	url = git@gitlab.com:doroke7/landan-protocol-proto.git
+[submodule "runs"]
+	path = runs
+	url = git@github.com:doroke7/landan-ai-yolo-runs.git

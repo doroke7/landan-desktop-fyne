@@ -10,6 +10,14 @@ import (
 	"github.com/spf13/viper"
 )
 
+// OnnxModel 是一個 onnx 模型的設定：檔案路徑，以及信心低於它就丟掉的門檻（0 ~ 1）。
+//
+//nolint:stylecheck,revive
+type OnnxModel struct {
+	PATH      string  `mapstructure:"path"`
+	THRESHOLD float32 `mapstructure:"threshold"`
+}
+
 //nolint:stylecheck,revive
 type Config struct {
 	SERVICES struct {
@@ -21,21 +29,21 @@ type Config struct {
 		LIBRARY string `mapstructure:"library"`
 		DETECT  struct {
 			DIE struct {
-				CUBE string `mapstructure:"cube"`
-				TOP  string `mapstructure:"top"`
+				CUBE OnnxModel `mapstructure:"cube"`
+				TOP  OnnxModel `mapstructure:"top"`
 			} `mapstructure:"die"`
 			POKER struct {
-				CARD string `mapstructure:"card"`
+				CARD OnnxModel `mapstructure:"card"`
 			} `mapstructure:"poker"`
 		} `mapstructure:"detect"`
 		CLASSIFY struct {
 			DIE struct {
-				VALUE string `mapstructure:"value"`
+				VALUE OnnxModel `mapstructure:"value"`
 			} `mapstructure:"die"`
 			POKER struct {
-				CARD string `mapstructure:"card"`
-				RANK string `mapstructure:"rank"`
-				SUIT string `mapstructure:"suit"`
+				CARD OnnxModel `mapstructure:"card"`
+				RANK OnnxModel `mapstructure:"rank"`
+				SUIT OnnxModel `mapstructure:"suit"`
 			} `mapstructure:"poker"`
 		} `mapstructure:"classify"`
 	} `mapstructure:"onnx"`

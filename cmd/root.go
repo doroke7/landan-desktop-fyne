@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"landan-desktop-fyne/cmd/command"
 	"landan-desktop-fyne/cmd/desktop"
 	"landan-desktop-fyne/cmd/recognition"
 )
@@ -18,7 +19,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(desktop.Command, recognition.Command)
+	rootCmd.AddCommand(desktop.Command, recognition.Command, command.DiePredictorCommand)
 }
 
 // Execute runs the root command; called from the top-level main.go.

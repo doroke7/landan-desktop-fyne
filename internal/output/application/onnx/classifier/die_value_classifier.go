@@ -20,9 +20,9 @@ type DieValueClassifierModel struct {
 
 // NewDieValueClassifierModel 從 config/onnx.yaml 的 classify.die.value 讀模型路徑。
 func NewDieValueClassifierModel(oAbstractOnnx *outputApplicationOnnx.AbstractOnnx) (outputPortAnyClassifier.DieValueClassifierModel, error) {
-	sModelPath := bootstrap.CONFIG.ONNX.CLASSIFY.DIE.VALUE
+	sModelPath := bootstrap.CONFIG.ONNX.CLASSIFY.DIE.VALUE.PATH
 	if sModelPath == "" {
-		return nil, fmt.Errorf("onnx.classify.die.value is empty (is config/onnx.yaml filled in? run from the project root)")
+		return nil, fmt.Errorf("onnx.classify.die.value.path is empty (is config/onnx.yaml filled in? run from the project root)")
 	}
 
 	oAbstractClassifier, err := NewAbstractClassifier(oAbstractOnnx, sModelPath)

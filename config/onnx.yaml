@@ -1,17 +1,32 @@
 # libonnxruntime 動態函式庫的路徑，留空就用系統預設位置。
 library: ""
 
+# 每個模型：path 是 onnx 檔案，threshold 是信心低於它就丟掉（0 ~ 1）。
 detect:
   die:
-    cube: "./model/detect/die/cube/best.onnx"
-    top: "./model/detect/die/top/best.onnx"
+    cube:
+      path: "./runs/detect/die/cube/result-1/weights/best.onnx"
+      threshold: 0.7
+    top:
+      path: "./runs/detect/die/top/result-1/weights/best.onnx"
+      threshold: 0.7
   poker:
-    card: "./model/detect/poker/card/best.onnx"
+    card:
+      path: "./runs/detect/poker/card/result-3/weights/best.onnx"
+      threshold: 0.7
 
 classify:
   die:
-    value: "./model/classify/die/value/best.onnx"
+    value:
+      path: "./runs/classify/die/value/result-1/weights/best.onnx"
+      threshold: 0.7
   poker:
-    card: "./model/classify/poker/card/best.onnx"
-    rank: "./model/classify/poker/rank/best.onnx"
-    suit: "./model/classify/poker/suit/best.onnx"
+    card:
+      path: "./runs/classify/poker/card/result-2/weights/best.onnx"
+      threshold: 0.7
+    rank:
+      path: "./runs/classify/poker/rank/result-2/weights/best.onnx"
+      threshold: 0.7
+    suit:
+      path: "./runs/classify/poker/suit/result-2/weights/best.onnx"
+      threshold: 0.7

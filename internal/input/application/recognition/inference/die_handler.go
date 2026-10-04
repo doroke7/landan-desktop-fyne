@@ -12,12 +12,12 @@ import (
 
 type DieHandler struct {
 	pbRecognitionTableInference.UnimplementedDieServiceServer
-	irInferenceDieUsecase usecasePortRecognitionInference.DieUsecase
+	recognitionInferenceDieUsecase usecasePortRecognitionInference.DieUsecase
 }
 
 func NewDieHandler(oDieUsecase usecasePortRecognitionInference.DieUsecase) *DieHandler {
 	return &DieHandler{
-		irInferenceDieUsecase: oDieUsecase,
+		recognitionInferenceDieUsecase: oDieUsecase,
 	}
 }
 
@@ -26,7 +26,7 @@ func (oSelf *DieHandler) Recognize(_ context.Context, oRequest *pbRecognitionTab
 		return nil, status.Error(codes.InvalidArgument, "image is empty")
 	}
 
-	aDies, err := oSelf.irInferenceDieUsecase.Recognize(oRequest.GetImage())
+	aDies, err := oSelf.recognitionInferenceDieUsecase.Recognize(oRequest.GetImage())
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
