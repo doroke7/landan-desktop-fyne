@@ -96,6 +96,40 @@ a.jpg：共偵測到 2 張撲克牌
 
 上面的數字是示意，不是實際跑出來的結果。模型路徑與門檻在 `config/onnx.yaml` 的 `detect.poker.card`、`classify.poker.card`、`classify.poker.rank`、`classify.poker.suit`。
 
+## 推論性能：poker-predictor
+
+**測試條件**
+
+- Apple M4、macOS 26.5，同一組 6 張截圖、同一份 `bin/main`，只換推論後端
+- 指令：`bin/main command poker-predictor --workdir <圖片目錄>`，圖片依序辨識
+- 4 個模型：`detect/poker/card/result-3`（偵測撲克牌）、`classify/poker/card/result-2`（正面／反面）、`classify/poker/rank/result-2`（點數）、`classify/poker/suit/result-2`（花色）
+- 「pipeline」耗時是單張圖從偵測到分類跑完的總時間，不含模型載入
+- **ONNX**：onnxruntime 1.30.0、provider `cpu`，讀 `best.onnx`（`config/openvino.yaml` 設 `enabled: false`）
+- **OpenVINO**：直接讀 `best_openvino_model/best.xml`，裝置 CPU（`config/openvino.yaml` 設 `enabled: true`）
+
+**結果（6 張截圖，單位 ms）**
+
+| 圖片 | ONNX (cpu) | OpenVINO (CPU) |
+| --- | --- | --- |
+| 2026-04-24@00h26m36s648.png | 1364.9 | 344.6 |
+| 2026-04-24@00h26m46s688.png | 1301.5 | 332.2 |
+| 2026-04-24@00h26m50s340.png | 1374.1 | 491.2 |
+| 2026-04-24@00h26m54s449.png | 1479.2 | 381.8 |
+| 2026-04-24@00h26m58s277.png | 1535.6 | 374.8 |
+| 2026-04-24@00h27m17s086.png | 1447.6 | 368.3 |
+| **平均** | **約 1417** | **約 382** |
+| 中位數 | 約 1411 | 約 372 |
+| 最快／最慢 | 1301.5／1535.6 | 332.2／491.2 |
+| 約略 FPS | 0.7 | 2.6 |
+
+這組數字下，OpenVINO 約為 ONNX（cpu）的 3.7 倍快。
+
+**說明**
+
+- ONNX 的數字是連跑兩次的第二次。第一次是冷啟動，6 張分別是 2263.5／1668.6／1691.9／2688.1／3744.8／1400.4 ms，差異很大，所以正式量測前要先暖機。
+- 只有 Front 的牌才會再跑花色與點數，牌的數量與朝向會影響耗時。
+- 樣本只有 6 張、只跑兩輪，不是嚴謹的 benchmark；OpenVINO 那組沒有重跑。
+- 啟動時的 `ld: warning: ignoring duplicate libraries: '-lobjc'` 是連結警告，不影響結果。
 
 ## 安裝步驟
 # 1. 安裝 onnx 

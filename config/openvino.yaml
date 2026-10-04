@@ -1,6 +1,6 @@
 # true 時，偵測與分類改用 OpenVINO 直接讀下面的 .xml，不再用 onnx.yaml 的 onnx 模型。
 # 要先裝好 OpenVINO（macOS: brew install openvino）；macOS 預設就會編進執行檔，Linux、Windows 要用 -tags openvino 編譯。
-enabled: true
+enabled: false
 
 # OpenVINO 編譯模型的裝置：CPU、GPU、NPU
 device: "CPU"
